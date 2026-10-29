@@ -83,20 +83,10 @@ static void FixCameraBlend() {
     });
 }
 
-// `movss xR, [state]; addss xR, [velocity]` (8-byte instructions at `movAt`/`addAt`, R < 8):
-// state + velocity applied once per frame -> state + velocity * e.
-static void EmitScaledAdd(Asm& a, const uint8_t* site, int movAt, int addAt, uint8_t reg) {
-    a.raw({0xF3, 0x0F, 0x10}).copy(site + addAt + 3, 5);  // movss xR, [velocity]
-    EmitSseRip(a, kMulss, reg, E());
-    a.raw({0xF3, 0x0F, 0x58}).copy(site + movAt + 3, 5);  // addss xR, [state]
-}
-
-static void ScaledAdd(const SigSite& s, uint8_t reg) {
-    PatchSite(s, [&](Asm& a, uint8_t* site) {
-        EmitScaledAdd(a, site, 0, 8, reg);
-        a.jmp(site + s.len);
-    });
-}
+// camera_final.cpp
+void FixCameraImpulses(const SigSite& plc1, const SigSite& plc2P, const SigSite& plc2Y, const SigSite& plc3P,
+                       const SigSite& plc3Y);
+void FixCameraFinal();
 
 // The player's displacement this frame at [rdx] (x, z; y is zeroed later) -> / e, the
 // 60 Hz displacement, after the site's original instructions (which set up rdx).
@@ -274,16 +264,9 @@ void FixCamera() {
         a.jmp(site + 16);
     });
 
-    // Angular impulses: angle += impulse velocity once per frame.
-    PatchSite(kCam_CAM_PLC1_ANGVEL, [](Asm& a, uint8_t* site) {
-        EmitScaledAdd(a, site, 0, 16, 0);                           // xmm0 = [0x3f0] + [0x4ac]*e
-        a.copy(site + 8, 8);                                        // movss xmm1, [0x4b0] (velocity)
-        EmitSseRip(a, kMulss, 1, E());
-        a.copy(site + 24, 8);                                       // addss xmm1, [0x3f4]
-        a.jmp(site + 32);
-    });
-    for (const SigSite* s : {&kCam_CAM_PLC2_ANGVEL_P, &kCam_CAM_PLC2_ANGVEL_Y, &kCam_CAM_PLC3_ANGVEL_P, &kCam_CAM_PLC3_ANGVEL_Y})
-        ScaledAdd(*s, 0);
+    // Angular impulses: integration and decay exact together (camera_final.cpp).
+    FixCameraImpulses(kCam_CAM_PLC1_ANGVEL, kCam_CAM_PLC2_ANGVEL_P, kCam_CAM_PLC2_ANGVEL_Y, kCam_CAM_PLC3_ANGVEL_P,
+                      kCam_CAM_PLC3_ANGVEL_Y);
     // Per-frame ramps of +0x8504.
     ScaleThenReplay(kCam_CAM_DEF_8504_UP, 0);
     ScaleThenReplay(kCam_CAM_DEF_8504_DN, 0);
@@ -315,4 +298,5 @@ void FixCamera() {
     FixCameraBlend();
     FixEventCamera(inv);
     FixCameraShake();
+    FixCameraFinal();
 }

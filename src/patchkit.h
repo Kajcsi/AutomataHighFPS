@@ -163,3 +163,17 @@ bool ExactFraction(const SigSite& s, size_t prefix, uint8_t reg);
 // delta d and the callee multiplies by k itself: xmm2 -> (1-(1-min(k*d/e, 1))^e) / k,
 // and the original call runs unchanged at e = 1.
 bool ExactArgCall(const SigSite& s, float k = 0.0f);
+
+// Small encoders for hand-written caves.
+const uint8_t kDivss = 0x5E, kMaxss = 0x5F;
+const uint8_t kRcx = 1, kRbx = 3, kRsi = 6, kRdi = 7;  // base registers for SseMem
+// `<op>ss xD, xS`, or with f3 = false the packed/unprefixed form (movaps 0x28, xorps 0x57, comiss 0x2F).
+void SseRR(Asm& a, uint8_t op, uint8_t d, uint8_t s, bool f3 = true);
+void Movaps(Asm& a, uint8_t d, uint8_t s);
+// `<op>ss xD, [base + disp32]` (base not rsp/r12; op 0x11 stores xD).
+void SseMem(Asm& a, uint8_t op, uint8_t d, uint8_t base, int32_t disp);
+void CmpE1(Asm& a);      // cmp dword [e], 1.0
+void CmpTicks0(Asm& a);  // cmp dword [ticks60], 0
+// xR holds k*d: xR = 1-(1-min(k*d/e, 1))^e.
+void ExactFrac(Asm& a, uint8_t r, bool viaCall = false);
+bool Bytes(const uint8_t* p, std::initializer_list<uint8_t> b);

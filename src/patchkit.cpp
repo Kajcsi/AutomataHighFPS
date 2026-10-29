@@ -442,6 +442,32 @@ bool LerpAround(const SigSite& s, uint8_t reg, bool after) {
     });
 }
 
+void SseRR(Asm& a, uint8_t op, uint8_t d, uint8_t s, bool f3) {
+    if (f3) a.raw({0xF3});
+    uint8_t rex = (uint8_t)(0x40 | (d >= 8 ? 4 : 0) | (s >= 8 ? 1 : 0));
+    if (rex != 0x40) a.raw({rex});
+    a.raw({0x0F, op, (uint8_t)(0xC0 | (d & 7) << 3 | (s & 7))});
+}
+
+void Movaps(Asm& a, uint8_t d, uint8_t s) { SseRR(a, 0x28, d, s, false); }
+
+void SseMem(Asm& a, uint8_t op, uint8_t d, uint8_t base, int32_t disp) {
+    a.raw({0xF3});
+    if (d >= 8) a.raw({0x44});
+    a.raw({0x0F, op, (uint8_t)(0x80 | (d & 7) << 3 | base)}).i32(disp);
+}
+
+void CmpE1(Asm& a) { a.raw({0x81, 0x3D}).rip(&S->stepUpToOne, 4).i32(0x3F800000); }
+void CmpTicks0(Asm& a) { a.raw({0x83, 0x3D}).rip(&S->ticks60, 1).raw({0x00}); }
+
+void ExactFrac(Asm& a, uint8_t r, bool viaCall) {
+    EmitSseRip(a, kMulss, r, InvE());
+    EmitSseRip(a, kMinss, r, NearOne());
+    EmitFloatCall(a, &LerpE, r, r, viaCall);
+}
+
+bool Bytes(const uint8_t* p, std::initializer_list<uint8_t> b) { return memcmp(p, b.begin(), b.size()) == 0; }
+
 const float* ConstFloat(float v) {
     float* p = (float*)g_arena.Alloc(4, 4);
     if (p) *p = v;

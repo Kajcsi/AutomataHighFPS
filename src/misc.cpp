@@ -14,33 +14,6 @@
 namespace {
 
 const float* E() { return &S->stepUpToOne; }
-const uint8_t kDivss = 0x5E;
-// Base register numbers for SseMem.
-const uint8_t kRcx = 1, kRbx = 3, kRsi = 6, kRdi = 7;
-
-// `<op>ss xD, xS` (f3) or `<op>ps xD, xS` (movaps 0x28, xorps 0x57, comiss 0x2F).
-void SseRR(Asm& a, uint8_t op, uint8_t d, uint8_t s, bool f3 = true) {
-    if (f3) a.raw({0xF3});
-    uint8_t rex = (uint8_t)(0x40 | (d >= 8 ? 4 : 0) | (s >= 8 ? 1 : 0));
-    if (rex != 0x40) a.raw({rex});
-    a.raw({0x0F, op, (uint8_t)(0xC0 | (d & 7) << 3 | (s & 7))});
-}
-void Movaps(Asm& a, uint8_t d, uint8_t s) { SseRR(a, 0x28, d, s, false); }
-// `<op>ss xD, [base + disp32]` (base not rsp/r12).
-void SseMem(Asm& a, uint8_t op, uint8_t d, uint8_t base, int32_t disp) {
-    a.raw({0xF3});
-    if (d >= 8) a.raw({0x44});
-    a.raw({0x0F, op, (uint8_t)(0x80 | (d & 7) << 3 | base)}).i32(disp);
-}
-void CmpE1(Asm& a) { a.raw({0x81, 0x3D}).rip(E(), 4).i32(0x3F800000); }  // cmp dword [e], 1.0
-void CmpTicks0(Asm& a) { a.raw({0x83, 0x3D}).rip(&S->ticks60, 1).raw({0x00}); }  // cmp dword [ticks60], 0
-// xR holds k*d: xR = 1-(1-min(k*d/e, 1))^e.
-void ExactFrac(Asm& a, uint8_t r, bool viaCall = false) {
-    EmitSseRip(a, kMulss, r, InvE());
-    EmitSseRip(a, kMinss, r, NearOne());
-    EmitFloatCall(a, &LerpE, r, r, viaCall);
-}
-bool Bytes(const uint8_t* p, std::initializer_list<uint8_t> b) { return memcmp(p, b.begin(), b.size()) == 0; }
 
 // `mulss xA, [rip k]; mulss xA, <d>` (k*d lerp/decay factor on xA) with F computed in xF:
 // at e < 1 xA *= 1-(1-min(k*d/e,1))^e. `emitD` emits `mulss xF, <d>`.

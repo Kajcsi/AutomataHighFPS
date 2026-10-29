@@ -193,6 +193,38 @@ static void SameAt60Tests() {
     });
 }
 
+// Same check over the code from patch `first` to the end of patch `last` (sites that only
+// work as a pair, e.g. a value moved from one site to another).
+static void CheckSameAt60Range(const char* first, const char* last, const SiteSetup& st = {}) {
+    const PatchRecord* a0 = FindPatch(first);
+    const PatchRecord* a1 = FindPatch(last);
+    if (!a0 || !a1 || a1->site < a0->site) {
+        CHECK(false, "%s..%s patches present", first, last);
+        return;
+    }
+    static uint8_t* a = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    static uint8_t* b = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    size_t len = (size_t)(a1->site + a1->len - a0->site);
+    uint8_t* saved = (uint8_t*)malloc(len);
+    memcpy(saved, a0->site, len);
+    bool same = true;
+    for (uint32_t seed = 1; seed <= 3 && same; ++seed) {
+        FillState(a, seed);
+        ApplySetup(a, st);
+        RunSite(a0->site, len, a, 0);
+        FillState(b, seed);
+        ApplySetup(b, st);
+        WriteProtected(a0->site, g_pristineImage + (a0->site - G.image), len);
+        RunSite(a0->site, len, b, 0);
+        WriteProtected(a0->site, saved, len);
+        for (int i = 0; i < 16; ++i)
+            if (st.deadXmm >> i & 1) ((float*)(a + kXmmOut))[i] = ((float*)(b + kXmmOut))[i];
+        same = memcmp(a, b, kObjSize) == 0;
+    }
+    free(saved);
+    CHECK(same, "%s..%s identical to the game's code at 60 fps", first, last);
+}
+
 // Runs a patched site on `obj` (state set by the caller) and returns the xmm outputs.
 static float* RunNamed(const char* name, uint8_t* obj) {
     const PatchRecord* r = FindPatch(name);
@@ -299,6 +331,92 @@ static void MiscFinalTests() {
     reset(); S->ticks60 = 1; in[1] = e; *(float*)(o + 0xCF8) = 6.0f;
     RunNamed("POD_LaserBeamHitTimerTick", o);
     CHECK(Near(*(float*)(o + 0xCF8), 5.0f), "Pod B beam hit timer counts 60 Hz ticks (%.4f)", *(float*)(o + 0xCF8));
+    SimulateFrame(144);
+}
+
+static void CameraFinalTests(uint8_t* img) {
+    // GetDelta with no node reads the global time object's +0xA4: point it at our own.
+    alignas(16) static uint8_t timeObj[0x200];
+    void*& timeObjPtr = *(void**)(img + 0x176DEA0);
+    void* savedTimeObj = timeObjPtr;
+    timeObjPtr = timeObj;
+    *(void**)G.deltaHandle = nullptr;
+    *(float*)(timeObj + 0xA4) = 1.0f;
+
+    At60([] {
+        CheckSameAt60("CAM_PLC1_ANGVEL");
+        CheckSameAt60Range("CAM_PLC2_ANGVEL_P", "CAM_PLC2_ANGVEL_Y");
+        CheckSameAt60Range("CAM_PLC3_ANGVEL_P", "CAM_PLC3_ANGVEL_Y");
+        for (const char* n : {"CAM_PLC1_DECAY_P", "CAM_PLC1_DECAY_Y", "CAM_PLC2_DECAY_P", "CAM_PLC2_DECAY_Y",
+                              "CAM_PLC3_DECAY_P", "CAM_PLC3_DECAY_Y", "CAM_GAIN_OFS_Y", "CAM_GAIN_M29_Y", "CAM_GAIN_SIDE_Y",
+                              "CAM_GAIN_SIDE_DIST", "CAM_GAIN_M0E_ROLL", "CAM_M2A_3B0_EXACT", "CAM_M2A_3E4_EXACT",
+                              "CAM_M29_3B0_EXACT", "CAM_M18_39C_STATE", "CAM_DEF_YAWAUTO_FRAC", "CAM_RECENTER_PITCH",
+                              "CAM_RECENTER_YAW", "CAM_DEF_YAWAUTO_CALL"})
+            CheckSameAt60(n);
+        CheckSameAt60("CAM_PLC1_LINEND", {{{8, 0.0f}}, {}, 1u << 3});  // original compares with xmm8 = 0.0; xmm3 scratch
+        CheckSameAt60("CAM_PLC2_LINEND", {{{8, 0.0f}}, {}, 1u << 3});
+        CheckSameAt60("CAM_PLC3_LINEND", {{{7, 0.0f}}, {}, 1u << 3});
+    });
+
+    SimulateFrame(144);
+    float e = S->stepUpToOne;
+    *(float*)(timeObj + 0xA4) = e;  // normal speed: d = e
+    static uint8_t* o = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    float* in = (float*)(o + kXmmIn);
+    auto F = [&](uint32_t off) -> float& { return *(float*)(o + off); };
+    // Angular impulse, exponential phase: angle += W*v, W = (1-0.5^e)/0.5.
+    FillState(o, 4);
+    F(0x4BC) = 0.0f; F(0x3F0) = 1.0f; F(0x4AC) = 0.2f; F(0x3F4) = 2.0f; F(0x4B0) = -0.4f;
+    float* x = RunNamed("CAM_PLC1_ANGVEL", o);
+    {
+        float W = (1.0f - powf(0.5f, e)) / 0.5f;
+        CHECK(x && Near(x[0], 1.0f + W * 0.2f) && Near(x[1], 2.0f - W * 0.4f),
+              "camera impulse weight at 144 fps (pitch %.6f/%.6f)", x ? x[0] : 0.f, 1.0f + W * 0.2f);
+    }
+    // Linear phase: angle += e*v + (1-e)/2*d*a.
+    FillState(o, 5);
+    F(0x4BC) = 10.0f; F(0x3F0) = 1.0f; F(0x4AC) = 0.2f; F(0x4B4) = 0.01f; F(0x3F4) = 2.0f; F(0x4B0) = -0.4f; F(0x4B8) = 0.02f;
+    x = RunNamed("CAM_PLC1_ANGVEL", o);
+    {
+        float c = (1.0f - e) * 0.5f * e;
+        CHECK(x && Near(x[0], 1.0f + 0.01f * c + 0.2f * e) && Near(x[1], 2.0f + 0.02f * c - 0.4f * e),
+              "camera impulse linear phase at 144 fps (pitch %.6f)", x ? x[0] : 0.f);
+    }
+    // Decay: v *= (1 - 0.5)^e with xmm0 = 0.5*d.
+    FillState(o, 6);
+    in[0] = 0.5f * e; in[9] = 1.0f; F(0x4AC) = 0.3f;
+    x = RunNamed("CAM_PLC1_DECAY_P", o);
+    CHECK(x && Near(x[1], 0.3f * powf(0.5f, e)), "camera impulse decay at 144 fps (%.6f)", x ? x[1] : 0.f);
+    // Gain with the transition blend running: xmm1 *= LerpE(0.3X)/LerpE(X), X = [0x698].
+    FillState(o, 7);
+    in[1] = 2.0f; F(0x698) = 0.4f; *(int*)(o + 0x224) = 1;
+    x = RunNamed("CAM_GAIN_OFS_Y", o);
+    {
+        float lx = 1 - powf(0.6f, e), lg = 1 - powf(1 - 0.3f * 0.4f, e);
+        CHECK(x && Near(x[1], 2.0f * lg / lx), "camera gain composed with the blend at 144 fps (%.6f/%.6f)", x ? x[1] : 0.f,
+              2.0f * lg / lx);
+    }
+    // Gain with the follow factor: X = min(d*[0x210]/e, 1).
+    FillState(o, 8);
+    in[1] = 2.0f; F(0x210) = 0.1f; *(int*)(o + 0x224) = 0;
+    x = RunNamed("CAM_GAIN_OFS_Y", o);
+    {
+        float lx = 1 - powf(0.9f, e), lg = 1 - powf(1 - 0.03f, e);
+        CHECK(x && Near(x[1], 2.0f * lg / lx), "camera gain composed with the follow factor at 144 fps (%.6f/%.6f)",
+              x ? x[1] : 0.f, 2.0f * lg / lx);
+    }
+    // M18 follow factor state: multiplied by (d/e)^e = 1 at normal speed, not by d.
+    FillState(o, 9);
+    in[0] = e; F(0x39C) = 0.1f;
+    x = RunNamed("CAM_M18_39C_STATE", o);
+    CHECK(x && Near(x[0], 0.1f), "camera mode M18 follow factor kept at 144 fps (%.6f, was %.6f)", x ? x[0] : 0.f, 0.1f * e);
+    // M2A distance lerp.
+    FillState(o, 10);
+    in[0] = e; in[1] = 3.0f; in[7] = 0.01f;
+    x = RunNamed("CAM_M2A_3B0_EXACT", o);
+    CHECK(x && Near(x[0], 3.0f * (1 - powf(0.99f, e))), "camera mode M2A distance lerp exact at 144 fps (%.6f)", x ? x[0] : 0.f);
+
+    timeObjPtr = savedTimeObj;
     SimulateFrame(144);
 }
 
@@ -558,4 +676,5 @@ void RunSubsystemTests(uint8_t* img, int* failures) {
     BulletAndEnemyTests();
     SameAt60Tests();
     MiscFinalTests();
+    CameraFinalTests(img);
 }
