@@ -29,6 +29,8 @@ images = [load(exe), load(exe2)]
 
 
 def find(sig, which):
+    if len(sig.split()) > 160:  # Pattern::bytes in src/memory.h
+        raise SystemExit('signature for %s is longer than 160 bytes' % row['name'])
     image, base, code = images[which]
     rx = re.compile(b''.join(b'.' if t == '??' else re.escape(bytes([int(t, 16)])) for t in sig.split()), re.S)
     hits = [m.start() + base for m in rx.finditer(code)]

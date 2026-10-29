@@ -135,7 +135,8 @@ bool ZeroBranchOnTick(const SigSite& s, size_t counterLen);
 // 0x5D minss); op 0x2F emits `comiss xmm<reg>, [target]`.
 void EmitSseRip(Asm& a, uint8_t op, uint8_t reg, const void* target);
 const uint8_t kMovss = 0x10, kAddss = 0x58, kMulss = 0x59, kSubss = 0x5C, kMinss = 0x5D, kComiss = 0x2F;
-// One instruction inside a SigSite (`len` bytes at offset `at`) replaced by EmitSseRip(op, reg, target).
+// One instruction inside a SigSite (`len` bytes at offset `at`) replaced by EmitSseRip(op, reg, target);
+// with len 0 the instruction is inserted before offset `at` (which may be the site's length).
 struct SseSub {
     uint8_t at, len, op, reg;
     const void* target;

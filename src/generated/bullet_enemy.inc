@@ -49,7 +49,6 @@ static const ScaledConstPatch kBltScaledConsts[] = {
 };
 
 static const ArgCallPatch kBltArgCalls[] = {
-    {"BLT_SpinRate", "E8 ?? ?? ?? ?? 4C 8D 45 C0 48 8D 96 00 0E 00 00", nullptr, 0, 1, Scale::Lin, 1.0f},
     {"BLT_LineSnapLerp", "E8 ?? ?? ?? ?? F3 0F 10 96 50 15 00 00 48 8D 54 24 30 48 8D 4C 24 60", nullptr, 0, 3, Scale::Lerp, 0.0f},
     {"SW_Em2100P_ApprRate1", "E8 ?? ?? ?? ?? F3 0F 10 1D ?? ?? ?? ?? 0F 28 D6 F3 0F 11 83 80 00 00 00", nullptr, 0, 2, Scale::Lerp, 0.0f},
     {"SW_Em2100P_ApprRate2", "E8 ?? ?? ?? ?? F3 0F 11 83 84 00 00 00 C7 87 40 13 00 00 01 00 00 00", nullptr, 0, 2, Scale::Lerp, 0.0f},
@@ -58,7 +57,6 @@ static const ArgCallPatch kBltArgCalls[] = {
 };
 
 static const VecCallPatch kBltVecCalls[] = {
-    {"BLT_RingBombMove", "E8 ?? ?? ?? ?? 4C 8D 86 F0 0D 00 00", nullptr, 0},
     {"EM_Strafe_Step", "E8 ?? ?? ?? ?? 48 8D 55 D7 48 8B CB E8 ?? ?? ?? ?? E8 ?? ?? ?? ??", nullptr, 0},
 };
 

@@ -38,7 +38,6 @@ static const ArgCallPatch kHackArgCalls[] = {
     {"SHIP_MOVE_A", "E8 ?? ?? ?? ?? 48 8D 4F 50 4C 8D 45 A0 48 8B D1 E8 ?? ?? ?? ?? EB 04", nullptr, 0, 2, Scale::Lin, 1.0f},
     {"SHIP_MOVE_B", "E8 ?? ?? ?? ?? 48 8D 4F 50 4C 8D 45 A0 48 8B D1 E8 ?? ?? ?? ?? F7 05 ?? ?? ?? ?? 00 00 20 00", nullptr, 0, 2, Scale::Lin, 1.0f},
     {"ROLL_MOVE", "E8 ?? ?? ?? ?? 48 8D 4F 50 48 8B D1 4C 8D 45 80", nullptr, 0, 2, Scale::Lin, 1.0f},
-    {"SHIP_KNOCK_MOVE", "E8 ?? ?? ?? ?? 48 8D 4B 50 48 8B D1 4C 8D 44 24 30 E8 ?? ?? ?? ?? F3 0F 10 83 60 2A 01 00", nullptr, 0, 2, Scale::Lin, 1.0f},
     {"ROLL_HELPER_FOLLOW", "E8 ?? ?? ?? ?? 4C 8D 45 F0 48 8B D3 48 8B CB", "E8 ?? ?? ?? ?? 4C 8D 45 E0 49 8D 55 50 49 8D 4D 50", 0, 2, Scale::Lerp, 0.0f},
     {"EM_MOVE_V1", "E8 ?? ?? ?? ?? 48 8D 4F 50 48 8B D1 4C 8D 44 24 30 E8 ?? ?? ?? ?? 0F 28 74 24 60", nullptr, 0, 2, Scale::Lin, 1.0f},
     {"EM_MOVE_V2", "E8 ?? ?? ?? ?? 4C 8D 44 24 50 48 8D 57 50 48 8D 4F 50 E8 ?? ?? ?? ?? 0F 28 74 24 60", nullptr, 0, 2, Scale::Lin, 1.0f},
@@ -55,7 +54,6 @@ static const ArgCallPatch kHackArgCalls[] = {
     {"EM_DIRLERP_L1", "E8 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? F3 0F 10 8F C8 36 00 00", nullptr, 0, 3, Scale::Lerp, 0.0f},
     {"EM_DIRLERP_L2", "E8 ?? ?? ?? ?? F7 83 E4 36 00 00 00 00 00 08 0F 84 ?? ?? ?? ?? 48 8D 4C 24 20", nullptr, 0, 3, Scale::Lerp, 0.0f},
     {"EM_DIRLERP_L3", "E8 ?? ?? ?? ?? F3 0F 10 87 AC 36 00 00 4C 8D 87 C0 00 00 00 F3 0F 5C F0", nullptr, 0, 3, Scale::Lerp, 0.0f},
-    {"EM_KNOCK_MOVE", "E8 ?? ?? ?? ?? 48 8D 54 24 30 48 8B CB E8 ?? ?? ?? ?? F3 0F 10 83 88 0D 00 00 0F 5A C0", nullptr, 0, 2, Scale::Lin, 1.0f},
 };
 
 static const SigSite kHack_SHIP_LERP_A = {"SHIP_LERP_A", "F3 0F 59 8F 80 28 01 00 F3 0F 58 C8 F3 0F 11 8F D8 28 01 00 F3 44 0F 11 4C 24 20", nullptr, 0, {0xF3, 0x0F, 0x59, 0x8F, 0x80, 0x28, 0x01, 0x00}, 8, 0xFFull};

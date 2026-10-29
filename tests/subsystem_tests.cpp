@@ -44,6 +44,8 @@ static void SimulateFrame(double fps) {
 // rcx/rdx/r8 point at three vectors, xmm0-15 are loaded from kXmmIn and stored to kXmmOut.
 const size_t kObjSize = 0x40000, kVecRcx = 0x3E000, kVecRdx = 0x3E040, kVecR8 = 0x3E080, kXmmIn = 0x3F000,
              kXmmOut = 0x3F100;
+// With the int at kRdxFlag set, the 16 bytes rdx points at after the site are copied to kRdxOut.
+const size_t kRdxFlag = 0x3E100, kRdxOut = 0x3E200;
 const uint8_t* g_pristineImage;  // unpatched copy of the mapped executable (set by harness.cpp)
 
 // Runs the code at `site` up to `site + len` (where a temporary jmp returns here) in a
@@ -82,6 +84,11 @@ static int RunSite(uint8_t* site, size_t len, uint8_t* obj, int eaxIn) {
             a.raw({0xF3, (uint8_t)(i >= 8 ? 0x45 : 0x41), 0x0F, 0x11});
             a.raw({(uint8_t)(0x83 | (i & 7) << 3)}).i32((int32_t)(kXmmOut + 4 * i));
         }
+        a.raw({0x41, 0x83, 0xBB}).i32((int32_t)kRdxFlag).raw({0x00});                 // cmp dword [r11+flag], 0
+        a.raw({0x74, 0x0B});                                                          // je skip
+        a.raw({0x0F, 0x10, 0x02});                                                    // movups xmm0, [rdx]
+        a.raw({0x41, 0x0F, 0x11, 0x83}).i32((int32_t)kRdxOut);                        // movups [r11+out], xmm0
+        // skip:
         for (uint8_t i = 6; i < 16; ++i) {                                            // movups xmm6-15, [rsp+0x100+..]
             if (i >= 8) a.raw({0x44});
             a.raw({0x0F, 0x10, (uint8_t)(0x84 | (i & 7) << 3), 0x24}).i32(0x100 + 16 * (i - 6));
@@ -420,6 +427,180 @@ static void CameraFinalTests(uint8_t* img) {
     SimulateFrame(144);
 }
 
+static void EnemyFinalTests() {
+    At60([] {
+        for (const char* n :
+             {"EF_Blt_ExactGravityPos_5EDC16", "EF_Blt_RingBombMoveExact_6E4E58", "EF_Blt_SpinRateExact_5ED66E",
+              "EF_Blt_SpinDecayExact_5ED68A", "EF_Blt_ScaleLerpExact_6E4C91", "EF_Blt_EB0RotFrac_6B4F88",
+              "EF_Blt_M37FrameTurn_675467", "EF_Blt_M43HomingTurn_674732", "EF_Em4000_BeamGrow_53AB57",
+              "EF_Em4000_BeamGrowB_53AEB8", "EF_Em4000_BeamTiltLerp_53AC32", "EF_Em0000_SpeedDecay275C0_5429B6",
+              "EF_Em0000_SpeedDecay275C0B_53E81C", "EF_Em0000_Decay275BC_5463E0", "EF_Em0000_PitchLerpExact_555DA2",
+              "EF_Em0000_PitchLerpExactB_556CEE", "EF_Em0000_HeightLerpExact_566EA1", "EF_Em0000_FallVyExact_566820",
+              "EF_Em0000_TiltLerpExact_53F6BE", "EF_Em0000_SlideStepExact_544E38", "EF_Em0000_OrbitAngle_561FB5",
+              "EF_EmBase_DriftFrames_689F5C", "EF_Em0030_ApprMax_552B80", "EF_Em5000FF_SpinVelExact_686479",
+              "EF_Em5000FF_PartLerpExact_686A25", "EF_Em5000FF_PartLerpExactB_686A61", "EF_Em5000FF_SinkStep_68669D",
+              "EF_Em8800_LerpExact_687A92", "EF_Em8800_LerpExactB_687AC6", "EF_Em0080_BoneLerpExact_6C5095",
+              "EF_Em1000_BlendExactA_6ABAF2", "EF_Em1000_BlendExactD_6ABD86", "EF_Em1000_BlendExactB_6ABCCC",
+              "EF_Em1000_BlendExactC_6ABD19", "EF_EmHover_PullWeight_53BC91", "EF_EmHover_VelDecay_53BCC0",
+              "EF_EmHover_VelDecay_53BD07", "EF_EmHover_PullWeight_53CCE6", "EF_EmHover_VelDecay_53CD13",
+              "EF_EmHover_VelDecay_53CD57", "EF_EmHover_PullWeight_5423AC", "EF_EmHover_VelDecay_5423D8",
+              "EF_EmHover_VelDecay_54241E", "EF_EmHover_PullWeight_5435B8", "EF_EmHover_VelDecay_5435E5",
+              "EF_EmHover_VelDecay_543629", "EF_EmHover_PullWeight_558C52", "EF_EmHover_VelDecay_558C81",
+              "EF_EmHover_VelDecay_558CC8", "EF_EmHover_PullWeight_5B6297", "EF_EmHover_VelDecay_5B62C3",
+              "EF_EmHover_VelDecay_5B6308", "EF_Em2001_HoverPullWeight_5B9DCF", "EF_Em2001_HoverVelDecay_5B9DF6",
+              "EF_Em8000_DriftDecayExact_5CC74D", "EF_Em8000_RotorBoneLerpExact_6BABAD",
+              "EF_Em8000_RotorBoneLerpExact_6BABF9", "EF_Em5000_DeltaLerpExact_6854F0", "EF_Em9000_DeltaLerpExact_688639",
+              "EF_Em9010_DeltaLerpExact_688BF5", "EF_Em7000_HeightLerpExact_6A4E07", "EF_Em2000_DashMoveExact_5B6D98",
+              "EF_Em2100Parts_SpinX_5BA332", "EF_Em2100Parts_SpinY_5BA34F", "EF_Em2100Parts_GatherRotFrac_5BA58F",
+              "EF_Em2100Parts_GatherRotFrac_5BA653", "EF_Em2100Parts_GravityExact_682E36", "EF_Em4000Core_BobLerp_68431D",
+              "EF_Em4000Core_SpinStep_6B8E41", "EF_Em8800Parts_GravityExact_688248", "EF_Em8800Parts_HomeRotFrac_5CE57B",
+              "EF_Em8800Parts_HomeRotFrac_5CE63F", "EF_Em8800Parts_HomePosExact_5CE6FB",
+              "EF_Em5000FloatRubble_FollowExact_5FA6E8", "EF_Em011e_StopDecayExact_67EBE6", "EF_Em011e_PosStep_67EBFA",
+              "EF_Em0030Parts_HeightLerpExact_6BB124", "EF_Em5000_LevelDebounce_685803", "EF_Ba0420_Wait9F0_452F0C",
+              "EF_Ba0420_Fade9F0_47393E", "EF_BaAnimal_ContactFrames_425421", "EF_Baa000_StateFrames_468082",
+              "EF_Baa010_StateFrames_46D093"})
+            CheckSameAt60(n);
+        // A register holding the game's constant is replaced by the scaled copy of that constant.
+        struct { const char* n; int reg; float v; } withReg[] = {
+            {"EF_Em0000_SpeedLerp12_55BBEB", 10, 0.1f}, {"EF_Em0000_SpeedLerp_564B4B", 8, 0.1f},
+            {"EF_Em0000_DriftXLerp_53F463", 7, 0.1f},   {"EF_Em0000_DriftXDecay_53F487", 7, 0.1f},
+            {"EF_Em0000_HoverPullLerp_555B63", 9, 0.1f},
+            {"EF_Em0000_HoverPullLerp_556AB3", 9, 0.1f}, {"EF_Em0000_PullTimer_5475F1", 6, 1.0f},
+            {"EF_Em0000_PullTimer_550DA7", 6, 1.0f},    {"EF_Em0000_FadeNear_5EE52E", 6, 0.1f},
+            {"EF_Em0000_FadeIn_5EE53C", 6, 0.1f},       {"EF_Baa000_TurnRateRamp_5025F7", 7, 0.01f},
+            {"EF_Em1100_CamDistLerp_681045", 7, 0.01f}, {"EF_Em5000_HoverPullLerp_5C3EC7", 6, 0.1f},
+            {"EF_Em5000_HoverPullLerp_5C4CEF", 9, 0.1f}, {"EF_Em2000_GlowLerp_6B0D68", 0, 0.1f},
+            {"EF_Em2100Parts_ScaleLerp_5BA324", 6, 0.3f}, {"EF_Em0030Parts_YawLerp_6BB072", 6, 0.1f},
+        };
+        for (auto& w : withReg) CheckSameAt60(w.n, {{{w.reg, w.v}}});
+        CheckSameAt60("EF_Em4000_BeamSweepStep_53AF8B", {{}, {}, 1u << 4});  // xmm4 scratch
+        // Stores r15d (a pointer in the test), so compared directly: xmm2 = xmm8's 0.1, store kept.
+        static uint8_t* m = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        FillState(m, 1);
+        ((float*)(m + kXmmIn))[8] = 0.1f;
+        float* x = RunNamed("EF_Em0000_MoveByLerp_5654E6", m);
+        CHECK(x && x[2] == 0.1f && *(uint32_t*)(m + 0x20000 - 0x75) == (uint32_t)(uintptr_t)m,
+              "EF_Em0000_MoveByLerp_5654E6 identical to the game's code at 60 fps");
+    });
+
+    // 144 fps: each pattern against its closed form (normal speed, d = e).
+    SimulateFrame(144);
+    float e = S->stepUpToOne;
+    auto lerpE = [&](float k) { return 1.0f - powf(1.0f - k, e); };
+    static uint8_t* o = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    float* in = (float*)(o + kXmmIn);
+    auto F = [&](uint32_t off) -> float& { return *(float*)(o + off); };
+    auto I = [&](uint32_t off) -> int& { return *(int*)(o + off); };
+
+    FillState(o, 1); in[2] = 2.0f; F(0xC84) = e;
+    float* x = RunNamed("EF_Em5000_DeltaLerpExact_6854F0", o);
+    CHECK(x && Near(x[2], 2.0f * lerpE(0.1f)), "enemy k*d lerp (constant k) exact at 144 fps (%.6f)", x ? x[2] : 0.f);
+    FillState(o, 2); in[0] = 2.0f; in[7] = 0.1f; F(0xC84) = e;
+    x = RunNamed("EF_Em0000_TiltLerpExact_53F6BE", o);
+    CHECK(x && Near(x[0], 2.0f * lerpE(0.1f)), "enemy k*d lerp (register k) exact at 144 fps (%.6f)", x ? x[0] : 0.f);
+    FillState(o, 3); in[0] = e; in[1] = 3.0f;
+    x = RunNamed("EF_Em8800_LerpExact_687A92", o);
+    CHECK(x && Near(x[0], 3.0f * lerpE(0.025f)), "enemy k*GetDelta lerp exact at 144 fps (%.6f)", x ? x[0] : 0.f);
+    FillState(o, 4); in[3] = 2.0f; in[9] = 0.1f; F(0xC84) = e;
+    x = RunNamed("EF_Em1000_BlendExactB_6ABCCC", o);
+    CHECK(x && Near(x[3] * e, 2.0f * lerpE(0.1f)), "Em1000 blend factor exact at 144 fps (%.6f)", x ? x[3] * e : 0.f);
+    FillState(o, 5); in[1] = 1.0f; in[0] = 0.1f * e; F(0x275C0) = 2.0f;
+    x = RunNamed("EF_Em0000_SpeedDecay275C0_5429B6", o);
+    CHECK(x && Near(x[1], 2.0f * powf(0.9f, e)), "enemy speed decay exact at 144 fps (%.6f)", x ? x[1] : 0.f);
+    FillState(o, 6); in[0] = 2.0f; F(0x2AF80) = 1.0f; in[6] = 0.2f;
+    x = RunNamed("EF_Em0000_OrbitAngle_561FB5", o);
+    CHECK(x && Near(x[0], 1.0f + 0.2f * e), "orbit angle step * e at 144 fps (%.6f)", x ? x[0] : 0.f);
+    FillState(o, 7); in[1] = 2.0f;
+    x = RunNamed("EF_Em4000_BeamTiltLerp_53AC32", o);
+    CHECK(x && Near(2.0f * x[1], 2.0f * lerpE(0.004f)), "Em4000 beam tilt lerp exact at 144 fps (%.6f)", x ? 2 * x[1] : 0.f);
+
+    // Hover pull and decay: steady speed and the approach after 1 s match 60 frames at 60 fps.
+    FillState(o, 8); in[7] = 0.1f; F(0xC84) = e;
+    x = RunNamed("EF_EmHover_PullWeight_5423AC", o);
+    float W = x ? x[2] : 0.f;
+    FillState(o, 8); in[6] = 1.0f; in[0] = 0.1f * e;
+    x = RunNamed("EF_EmHover_VelDecay_5423D8", o);
+    float R = x ? x[2] : 0.f;
+    {
+        float v144 = 0, v60 = 0;
+        for (int i = 0; i < 144; ++i) v144 = R * v144 + W;
+        for (int i = 0; i < 60; ++i) v60 = 0.9f * v60 + 0.1f;
+        CHECK(Near(W, lerpE(0.1f)) && Near(R, powf(0.9f, e)) && fabsf(v144 - v60) < 1e-4f,
+              "hover pull after 1 s at 144 fps: %.5f (60 fps %.5f; weight %.5f, decay %.5f)", v144, v60, W, R);
+    }
+    // Part gravity: pos += -0.5*g*d*d*(1/e - 1) along M row 1.
+    FillState(o, 9); F(0x1344) = e; F(0x1374) = 0.02f; F(0xD0) = 0; F(0xD4) = 1; F(0xD8) = 0;
+    F(0x50) = F(0x54) = F(0x58) = 0;
+    RunNamed("EF_Em2100Parts_GravityExact_682E36", o);
+    CHECK(Near(F(0x54), -0.5f * 0.02f * e * e * (1 / e - 1)) && F(0x50) == 0 && F(0x58) == 0,
+          "part gravity correction at 144 fps (%.7f)", F(0x54));
+    // Fall state: vy -= g*e; pos step d*vy + 0.5*g*d*(1-e).
+    FillState(o, 10); F(0x5FA4) = 0.02f; F(0xC84) = e; in[0] = 1.0f; in[1] = e;
+    x = RunNamed("EF_Em0000_FallVyExact_566820", o);
+    CHECK(x && Near(x[0], 1.0f - 0.02f * e) && Near(x[1], e + 0.01f * e * (1 - e)), "enemy fall exact at 144 fps (vy %.6f, step %.6f)",
+          x ? x[0] : 0.f, x ? x[1] : 0.f);
+
+    // Bullet arc: 1 s at 144 fps lands where 60 frames at 60 fps do (gravity before the move).
+    {
+        float vy = 1.0f, y = 0, yPlain = 0;
+        for (int i = 0; i < 144; ++i) {
+            FillState(o, 11);
+            I(kRdxFlag) = 1;
+            I(0xC84) = 0xA; F(0xDB0) = F(0xDB4) = F(0xDB8) = 0; F(0xE98) = 0.05f; I(0xDC0) = 0; F(0xE58) = 1.0f; F(0xC80) = e;
+            F(0xD0) = 0; F(0xD4) = 1; F(0xD8) = 0;
+            vy -= 0.05f * e;  // BLT_ArcGravity
+            F(0) = 0; F(4) = vy; F(8) = 0; F(0xC) = 0;
+            RunNamed("EF_Blt_ExactGravityPos_5EDC16", o);
+            y += *(float*)(o + kRdxOut + 4) * e;
+            yPlain += vy * e;
+        }
+        float vy60 = 1.0f, y60 = 0;
+        for (int i = 0; i < 60; ++i) vy60 -= 0.05f, y60 += vy60;
+        CHECK(fabsf(y - y60) < 1e-4f * fabsf(y60) + 1e-4f, "bullet arc height after 1 s at 144 fps: %.5f (60 fps %.5f, without the fix %.5f)",
+              y, y60, yPlain);
+        I(kRdxFlag) = 0;
+    }
+    // Ring bomb: (M*vel + M.row1*c)*e, c = -0.0025*(1-e).
+    FillState(o, 12); F(0xDF0) = 1; F(0xDF4) = 2; F(0xDF8) = 3; F(0xD0) = 0; F(0xD4) = 1; F(0xD8) = 0; F(0xE04) = 0;
+    RunNamed("EF_Blt_RingBombMoveExact_6E4E58", o);
+    CHECK(Near(F(0xDF0), e) && Near(F(0xDF4), (2 - 0.0025f * (1 - e)) * e) && Near(F(0xDF8), 3 * e),
+          "ring bomb step exact at 144 fps (%.6f)", F(0xDF4));
+    // Bullet spin: rotation by w*(1-(1-kD)^e)/(kD), then w *= (1-kD)^e.
+    if (const PatchRecord* r = FindPatch("EF_Blt_SpinRateExact_5ED66E")) {
+        const uint8_t* orig = g_pristineImage + (r->site - G.image);
+        auto rotY = (void (*)(float*, float))(r->site + 5 + *(const int32_t*)(orig + 1));
+        FillState(o, 13); F(0xF00) = 0.05f; F(0xC80) = e; in[1] = 0.2f;
+        RunNamed("EF_Blt_SpinRateExact_5ED66E", o);
+        alignas(16) float want[16];
+        rotY(want, 0.2f * lerpE(0.05f) / 0.05f);
+        bool same = true;
+        for (int i = 0; i < 16; ++i) same = same && Near(((float*)(o + kVecRcx))[i], want[i]);
+        CHECK(same, "bullet spin rotation weight at 144 fps");
+    }
+    FillState(o, 14); F(0xF00) = 0.05f; F(0xC80) = e; in[9] = 1.0f;
+    x = RunNamed("EF_Blt_SpinDecayExact_5ED68A", o);
+    CHECK(x && Near(x[1], powf(0.95f, e)) && x[0] == 0.0f, "bullet spin decay exact at 144 fps (%.6f)", x ? x[1] : 0.f);
+    // Em011e: decay before a per-update move; 1 s of travel equals 60 frames at 60 fps.
+    FillState(o, 15); in[0] = 0.1f * e; in[8] = 1.0f; F(0) = 1; F(4) = 0; F(8) = 0; F(0x50) = F(0x54) = F(0x58) = 0;
+    x = RunNamed("EF_Em011e_StopDecayExact_67EBE6", o);
+    {
+        float corr = F(0x50), re = x ? x[2] : 0.f, v = 1, pos = 0, v60 = 1, pos60 = 0;
+        for (int i = 0; i < 144; ++i) pos += corr * v + re * v * e, v *= re;
+        for (int i = 0; i < 60; ++i) v60 *= 0.9f, pos60 += v60;
+        CHECK(x && Near(re, powf(0.9f, e)) && Near(x[8], re) && fabsf(pos - pos60) < 1e-4f,
+              "Em011e stopping distance after 1 s at 144 fps: %.5f (60 fps %.5f)", pos, pos60);
+    }
+    // Frame counters count 60 Hz ticks.
+    FillState(o, 16); I(0x2DCC) = 5;
+    S->ticks60 = 0;
+    RunNamed("EF_Baa000_StateFrames_468082", o);
+    int held = I(0x2DCC);
+    S->ticks60 = 1;
+    RunNamed("EF_Baa000_StateFrames_468082", o);
+    CHECK(held == 5 && I(0x2DCC) == 6, "Baa000 state frames count 60 Hz ticks (%d, %d)", held, I(0x2DCC));
+    SimulateFrame(144);
+}
+
 static void BulletAndEnemyTests() {
     static uint8_t* obj = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     float* out = (float*)(obj + kXmmOut);
@@ -677,4 +858,5 @@ void RunSubsystemTests(uint8_t* img, int* failures) {
     SameAt60Tests();
     MiscFinalTests();
     CameraFinalTests(img);
+    EnemyFinalTests();
 }

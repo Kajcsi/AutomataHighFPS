@@ -402,10 +402,14 @@ void EmitSseRip(Asm& a, uint8_t op, uint8_t reg, const void* target) {
 
 bool RewriteSite(const SigSite& s, std::initializer_list<SseSub> subs) {
     return PatchSite(s, [&](Asm& a, uint8_t* site) {
-        for (size_t i = 0; i < s.len;) {
+        for (size_t i = 0; i <= s.len;) {
             const SseSub* sub = nullptr;
-            for (const SseSub& x : subs)
-                if (x.at == i) sub = &x;
+            for (const SseSub& x : subs) {
+                if (x.at != i) continue;
+                if (x.len) sub = &x;
+                else EmitSseRip(a, x.op, x.reg, x.target);  // inserted before byte i
+            }
+            if (i == s.len) break;
             if (sub) {
                 EmitSseRip(a, sub->op, sub->reg, sub->target);
                 i += sub->len;
