@@ -11,6 +11,7 @@
 
 #include "generated/camera.inc"
 #include "generated/camera_blend.inc"
+#include "generated/camera_event.inc"
 
 static const float* E() { return &S->stepUpToOne; }
 
@@ -113,6 +114,59 @@ static void ExactFraction(const SigSite& s, size_t prefix, uint8_t reg, const fl
         EmitFloatCall(a, &LerpE, reg, reg);
         a.jmp(site + s.len);
     });
+}
+
+// The player's displacement this frame at [rdx] (x, z; y is zeroed later) -> / e, the
+// 60 Hz displacement, after the site's original instructions (which set up rdx).
+static void DisplacementPer60Hz(const SigSite& s, const float* inv) {
+    PatchSite(s, [&](Asm& a, uint8_t* site) {
+        a.copy(site, s.len);
+        for (uint8_t off : {0x00, 0x08}) {
+            a.raw({0xF3, 0x0F, 0x10, 0x42, off});                   // movss xmm0, [rdx+off]
+            EmitSseRip(a, kMulss, 0, inv);
+            a.raw({0xF3, 0x0F, 0x11, 0x42, off});                   // movss [rdx+off], xmm0
+        }
+        a.jmp(site + s.len);
+    });
+}
+
+// Event and scripted cameras (hap camera actions, moveOffset, interp-source camera,
+// side-view path mode) and the offset/side-view approach.
+static void FixEventCamera(const float* inv) {
+    InstallTable(kCamEScaledConsts, _countof(kCamEScaledConsts));
+    DisplacementPer60Hz(kCamE_CAM_EVT_MOVEOFS_DISP, inv);
+    DisplacementPer60Hz(kCamE_CAM_SUB_MOVEOFS_DISP, inv);
+    for (const SigSite* s : {&kCamE_CAM_EVT_MOVEOFS_LERP, &kCamE_CAM_SUB_MOVEOFS_LERP, &kCamE_CAM_SIDE_DIROFS_LERP,
+                             &kCamE_CAM_SIDE_VIEWOFS_LERP})
+        LerpAround(*s, 2, true);   // movaps xmm2, xmm6 (per-frame factor); lea rdx, [...]
+    LerpAround(kCamE_CAM_SUB_POSTGT_LERP, 6, false);
+    // Side-view path mode: destination += last frame's displacement along the path (a
+    // one-frame lead) -> the 60 Hz lead.
+    PatchSite(kCamE_CAM_SIDE_PATHMOVE_LEAD, [&](Asm& a, uint8_t* site) {
+        EmitSseRip(a, kMulss, 1, inv);
+        EmitSseRip(a, kMulss, 0, inv);
+        a.copy(site, 16);                                           // addss xmm1, [rdi+0x148]; addss xmm0, [rdi+0x140]
+        a.jmp(site + 16);
+    });
+    // Offset camera distance: += GetDelta * (len - dist) * 0.05 -> exact 60 Hz fraction.
+    // At e = 1 the original instructions run, so 60 FPS rounding is unchanged.
+    PatchSite(kCamE_CAM_OFS_DIST_3B0_EXACT, [&](Asm& a, uint8_t* site) {
+        const void* k = RipTarget(site, 4, 8);                     // the game's 0.05
+        a.raw({0x81, 0x3D}).rip(E(), 4).i32(0x3F800000);           // cmp dword [e], 1.0
+        uint8_t* jne = a.cur();
+        a.raw({0x75, 0x00});                                        // jne scaled
+        EmitSseRip(a, kMulss, 7, k);                                // mulss xmm7, [0.05]
+        a.copy(site + 8, 4);                                        // mulss xmm0, xmm7
+        a.jmp(site + 12);
+        jne[1] = (uint8_t)(a.cur() - (jne + 2));
+        EmitSseRip(a, kMulss, 0, inv);                              // xmm0 = GetDelta / e
+        EmitSseRip(a, kMulss, 0, k);
+        EmitSseRip(a, kMinss, 0, NearOne());
+        EmitFloatCall(a, &LerpE, 0, 0);
+        a.raw({0xF3, 0x0F, 0x59, 0xC7});                            // mulss xmm0, xmm7 (len - dist)
+        a.jmp(site + 12);
+    });
+    ExactFraction(kCamE_CAM_590_APPROACH_FRAC_EXACT, 5, 7, inv);   // flags of the cmp before stay live
 }
 
 void FixCamera() {
@@ -226,4 +280,5 @@ void FixCamera() {
     ExactFraction(kCam_HELPER_66ED60_EXACT, 5, 0, inv);
 
     FixCameraBlend();
+    FixEventCamera(inv);
 }
