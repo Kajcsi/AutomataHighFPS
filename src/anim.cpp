@@ -53,8 +53,12 @@ void DebugJumpFrame() {
             return;
         }
         double t = (double)(now.QuadPart - g_jumpStart.QuadPart) / (double)freq.QuadPart;
-        Log("jump t=%.4f step=%.4f state=%d phase=%d y=%.4f timer1A78=%.4f", t, S->step, *(int*)(p + 0x670),
-            *(int*)(p + 0x674), *(float*)(p + 0x54), *(float*)(p + 0x1A78));
+        // +0x1A74 hold timer, +0x1A78 launch speed, +0x1A7C landing lockout, +0x1494 vel.y,
+        // +0x14A4 grounded, +0x10484 gravity.
+        Log("jump t=%.4f step=%.4f state=%d phase=%d y=%.4f vy=%.4f hold=%.3f launch=%.3f lock=%.3f g=%.4f ground=%d", t,
+            S->step, *(int*)(p + 0x670), *(int*)(p + 0x674), *(float*)(p + 0x54), *(float*)(p + 0x1494),
+            *(float*)(p + 0x1A74), *(float*)(p + 0x1A78), *(float*)(p + 0x1A7C), *(float*)(p + 0x10484),
+            *(int*)(p + 0x14A4));
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         g_lastJumper = nullptr;
     }
