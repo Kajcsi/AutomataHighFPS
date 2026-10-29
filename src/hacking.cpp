@@ -8,20 +8,6 @@
 
 #include "generated/hacking.inc"
 
-// `mulss xD, [reg+disp]` with a per-object smoothing factor -> xD *= 1-(1-factor)^e.
-static void LerpObjectFactor(const SigSite& s) {
-    const uint8_t* op = s.orig + ((s.orig[1] & 0xF0) == 0x40 ? 2 : 1);
-    uint8_t modrm = op[2];
-    if ((modrm & 7) == 4 || (modrm >> 6) == 0) {
-        Log("  [skip] %s: unsupported operand", s.name);
-        return;
-    }
-    PatchSite(s, [&](Asm& a, uint8_t* site) {
-        EmitLerpMulssMem(a, s.orig, s.len);
-        a.jmp(site + s.len);
-    });
-}
-
 // `dec dword [rdi+0x128FC]` (respawn / restart wait in frames) -> subtract ticks60.
 static void RespawnWait(const SigSite& s) {
     PatchSite(s, [&](Asm& a, uint8_t* site) {

@@ -52,6 +52,9 @@ def ident(name):
 def scale(formula):
     if 'lerparg' in formula:
         return 'Scale::Lerp', 0.0  # lerp of the runtime argument
+    m = re.match(r'(lerp|pow|lin)\s+live\b', formula)
+    if m:
+        return 'Scale::' + m.group(1).capitalize(), 'NAN'  # tuning value re-read from the operand every frame
     f = formula.split('(')[0].strip()
     m = re.match(r'(lerp|pow|lin|sq|inv)\s+(-?[0-9.e-]+)', f)
     if m:
@@ -83,9 +86,10 @@ for line in open(tsv, encoding='utf-8'):
     if kind in ('SCALE_CONST', 'SCALE_CONST_DOUBLE'):
         ln, disp = int(row['ins_len']), int(row['disp_off'])
         sk, base = scale(row['formula'])
+        literal = base if isinstance(base, str) else repr(base) + ('' if kind == 'SCALE_CONST_DOUBLE' else 'f')
         line = '    {%s, %s, %s, %d, %s, %d, %d, %d, %s, %s},' % (
-            cstr(name), cstr(sig), cstr(alt), off, cbytes(img[site:site + disp]), disp, disp, ln, sk, repr(base))
-        (doubles if kind == 'SCALE_CONST_DOUBLE' else consts).append(line if kind == 'SCALE_CONST_DOUBLE' else line[:-2] + 'f},')
+            cstr(name), cstr(sig), cstr(alt), off, cbytes(img[site:site + disp]), disp, disp, ln, sk, literal)
+        (doubles if kind == 'SCALE_CONST_DOUBLE' else consts).append(line)
     elif kind == 'SCALE_ARG_CALL':
         reg = int(re.search(r'xmm(\d+)', row['formula']).group(1))
         sk, base = scale(row['formula'])

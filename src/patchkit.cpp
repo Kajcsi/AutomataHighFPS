@@ -14,7 +14,7 @@ struct ScaledEntry {
     const float* source;
     float* value;
 };
-static ScaledEntry g_scaled[512];
+static ScaledEntry g_scaled[1024];
 static size_t g_scaledCount;
 
 static float Evaluate(Scale kind, float c, float e) {
@@ -69,16 +69,21 @@ float* NewScaled(const char* name, Scale kind, float base, const float* source) 
 
 bool ScaleOperand(const char* name, uint8_t* insn, const uint8_t* opcode, size_t opLen, size_t dispOff, size_t len,
                   Scale kind, float expected) {
-    if (!insn || memcmp(insn, opcode, opLen) != 0) {
+    // The last opcode byte is the ModRM; its reg field (the destination register) may
+    // differ between the two builds and does not matter for retargeting the operand.
+    if (!insn || memcmp(insn, opcode, opLen - 1) != 0 || ((insn[opLen - 1] ^ opcode[opLen - 1]) & 0xC7)) {
         Log("  [skip] %s: unexpected bytes", name);
         return false;
     }
-    float original = *(float*)RipTarget(insn, dispOff, len);
-    if (fabsf(original - expected) > fabsf(expected) * 1e-4f + 1e-9f) {
+    const float* operand = (const float*)RipTarget(insn, dispOff, len);
+    float original = *operand;
+    // expected NaN: a tuning value in game data, re-read every frame.
+    bool live = std::isnan(expected);
+    if (!live && fabsf(original - expected) > fabsf(expected) * 1e-4f + 1e-9f) {
         Log("  [skip] %s: constant is %g, expected %g", name, original, expected);
         return false;
     }
-    float* v = NewScaled(name, kind, original);
+    float* v = NewScaled(name, kind, original, live ? operand : nullptr);
     if (!v) return false;
     int64_t disp = (uint8_t*)v - (insn + len);
     int32_t d = (int32_t)disp;
@@ -357,6 +362,59 @@ void DecEaxByTicks(const SigSite& s) {
     PatchSite(s, [&](Asm& a, uint8_t* site) {
         a.raw({0x2B, 0x05}).rip(&S->ticks60);  // sub eax, [ticks60]
         a.copy(site + 2, s.len - 2);
+        a.jmp(site + s.len);
+    });
+}
+
+void EmitSseRip(Asm& a, uint8_t op, uint8_t reg, const void* target) {
+    if (op != kComiss) a.raw({0xF3});
+    if (reg >= 8) a.raw({0x44});
+    a.raw({0x0F, op, (uint8_t)(0x05 | (reg & 7) << 3)}).rip(target);
+}
+
+bool RewriteSite(const SigSite& s, std::initializer_list<SseSub> subs) {
+    return PatchSite(s, [&](Asm& a, uint8_t* site) {
+        for (size_t i = 0; i < s.len;) {
+            const SseSub* sub = nullptr;
+            for (const SseSub& x : subs)
+                if (x.at == i) sub = &x;
+            if (sub) {
+                EmitSseRip(a, sub->op, sub->reg, sub->target);
+                i += sub->len;
+            } else {
+                a.copy(site + i++, 1);
+            }
+        }
+        a.jmp(site + s.len);
+    });
+}
+
+bool ScaleThenReplay(const SigSite& s, uint8_t reg) {
+    return PatchSite(s, [&](Asm& a, uint8_t* site) {
+        EmitSseRip(a, kMulss, reg, &S->stepUpToOne);
+        a.copy(site, s.len);
+        a.jmp(site + s.len);
+    });
+}
+
+bool LerpAround(const SigSite& s, uint8_t reg, bool after) {
+    return PatchSite(s, [&](Asm& a, uint8_t* site) {
+        if (after) a.copy(site, s.len);
+        EmitFloatCall(a, &LerpE, reg, reg);
+        if (!after) a.copy(site, s.len);
+        a.jmp(site + s.len);
+    });
+}
+
+bool LerpObjectFactor(const SigSite& s) {
+    const uint8_t* op = s.orig + ((s.orig[1] & 0xF0) == 0x40 ? 2 : 1);
+    uint8_t modrm = op[2];
+    if ((modrm & 7) == 4 || (modrm >> 6) == 0) {
+        Log("  [skip] %s: unsupported operand", s.name);
+        return false;
+    }
+    return PatchSite(s, [&](Asm& a, uint8_t* site) {
+        EmitLerpMulssMem(a, s.orig, s.len);
         a.jmp(site + s.len);
     });
 }

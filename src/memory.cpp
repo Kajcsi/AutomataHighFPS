@@ -69,7 +69,7 @@ bool BytesEqual(const void* a, std::initializer_list<uint8_t> b) {
     return memcmp(a, b.begin(), b.size()) == 0;
 }
 
-static PatchRecord g_patches[1024];
+static PatchRecord g_patches[2048];
 static size_t g_patchCount;
 
 void RecordPatch(const char* name, uint8_t* site, size_t len, uint8_t* cave, size_t caveLen) {

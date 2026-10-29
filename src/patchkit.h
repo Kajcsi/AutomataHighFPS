@@ -123,3 +123,20 @@ bool PatchSite(const SigSite& s, F emit) {
 }
 // `dec eax` followed by position-independent stores of eax (a frame counter) -> subtract ticks60.
 void DecEaxByTicks(const SigSite& s);
+// Emits `<op>ss xmm<reg>, [target]` (op 0x10 movss, 0x58 addss, 0x59 mulss, 0x5C subss,
+// 0x5D minss); op 0x2F emits `comiss xmm<reg>, [target]`.
+void EmitSseRip(Asm& a, uint8_t op, uint8_t reg, const void* target);
+const uint8_t kMovss = 0x10, kAddss = 0x58, kMulss = 0x59, kSubss = 0x5C, kMinss = 0x5D, kComiss = 0x2F;
+// One instruction inside a SigSite (`len` bytes at offset `at`) replaced by EmitSseRip(op, reg, target).
+struct SseSub {
+    uint8_t at, len, op, reg;
+    const void* target;
+};
+// Replays a SigSite's position-independent bytes with the given instructions replaced.
+bool RewriteSite(const SigSite& s, std::initializer_list<SseSub> subs);
+// xmm<reg> *= e, then the original instructions (a per-frame step added to state).
+bool ScaleThenReplay(const SigSite& s, uint8_t reg);
+// xmm<reg> = LerpE(xmm<reg>) before the original instructions, or after them (`after`). reg < 8.
+bool LerpAround(const SigSite& s, uint8_t reg, bool after);
+// `mulss xD, [reg+disp]` with a per-object smoothing factor -> xD *= LerpE([reg+disp]).
+bool LerpObjectFactor(const SigSite& s);
