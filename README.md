@@ -70,7 +70,7 @@ changes nothing there. All values are recomputed once per frame.
 
 ## Fixes
 
-About 680 patches, located by signature in both executables:
+About 750 patches, located by signature in both executables:
 
 | Area | What was frame-dependent | Fix |
 |---|---|---|
@@ -80,13 +80,13 @@ About 680 patches, located by signature in both executables:
 | Events and dialogue | Cutscene fade and caption lead-ins, caption auto-close, Yes/No input lock, forced-walk, fast-travel hold, elevator, timed HUD gauge (fixed 1/60 s per frame); NPC talk release; bunker waits; object-load wait; placed-item countdown; transition cooldowns | Scaled per frame / 60 Hz ticks |
 | Slow motion | Finisher slow-mo, BGM slow and delayed slow-mo requests counted in frames | 60 Hz ticks |
 | Menus and UI | Menu key-repeat (pad, keyboard, mouse), HUD fades, option-text marquee, rumble length | 60 Hz ticks / scaled smoothing |
-| Player movement | Glide spin-kick drift, air control, attack damping and plunge, jump/attack press buffers, jump and glide arcs, vertical free-move mode, scripted lift, slope landing check, A2 evade turn, animation-blend and animation-speed smoothing, scripted states (dive, flight-unit attach, push), beam length, assorted per-frame player counters | Scaled / exact gravity / 60 Hz ticks |
+| Player movement | Glide spin-kick drift, air control, attack damping and plunge, jump/attack and button press buffers, jump and glide arcs, vertical free-move mode, scripted lift, slope landing check, A2 evade turn, animation-blend and animation-speed smoothing, scripted states (dive, flight-unit attach, push, hover sway, fall return, stage laser), beam length, assorted per-frame player counters | Scaled / exact gravity / 60 Hz ticks |
 | Pod | Follow smoothing (57 sites), sonar ping interval, scripted pod timers, bob ramp | Scaled / 60 Hz ticks |
-| Enemies | Common movement smoothing (yaw, angle, speed), strafing, keep-distance and approach steps, drift, navmesh pull-back, fall smoothing, gravity, boss part spins and smoothing, hit windows, attack cooldowns, waits, slow-motion override and time-scale request counters, hacked-robot attack damping | Scaled / exact gravity / 60 Hz ticks |
+| Enemies | Common movement smoothing (yaw, angle, speed), strafing, keep-distance and approach steps, drift, navmesh pull-back, hit pull-in, RunState steps, hacked-robot stick decay, fall smoothing, gravity, boss part spins and smoothing, hit windows, attack cooldowns, waits, slow-motion override and time-scale request counters, hacked-robot attack damping | Scaled / exact gravity / 60 Hz ticks |
 | Bullets | Arc-shot gravity and speed-up, spin, homing turn rate and fraction, speed decay, wobble, guided-line counter and snap, gravity wells, ring bombs, beams, and bullet types that moved a fixed distance per frame | Scaled |
-| Camera | Every third-person camera mode's follow-factor ramps, angle, distance and offset smoothing, approach fractions and step limits, angular impulses, target lag, aim offsets, recentre and snap frame counters; fractions the camera already scaled by the frame time use the exact 60 FPS equivalent | Scaled / 60 Hz ticks |
-| NPCs and companions | 9S/A2 yaw, animation blend, step and follow smoothing, scripted entrances, creature NPC turning and leaning, foot IK, the 9S thrown weapon, fish | Scaled |
-| World | Map gimmick timers (doors, elevators, steam pipes), item and corpse lifetimes, item magnet, drop timers, environment and light transitions, phase-flow and manager timers, scrolling sections, see-through fades, ambient audio smoothing, particle emit counters | Scaled / 60 Hz ticks |
+| Camera | Every third-person camera mode's follow-factor ramps, angle, distance and offset smoothing, approach fractions and step limits, angular impulses, target lag, aim offsets, recentre, snap and skip-update frame counters, the mode-transition blend, event and scripted cameras (path camera, moveOffset, side-view path mode); fractions the camera already scaled by the frame time use the exact 60 FPS equivalent | Scaled / 60 Hz ticks |
+| NPCs and companions | 9S/A2 yaw, animation blend, step and follow smoothing, scripted entrances, anchor and navmesh pulls, creature NPC turning, leaning, speed ramps and path movement, foot IK, the 9S thrown weapon, fish | Scaled |
+| World | Map gimmick timers (doors, elevators, steam pipes), item and corpse lifetimes, item magnet, drop timers, environment and light transitions, phase-flow and manager timers, scrolling sections, see-through fades, ambient audio smoothing and ray sampling, combat hit and phase windows, particle emit counters | Scaled / 60 Hz ticks |
 | HUD and menus | Boss HP gauge, operating-ratio and pollution gauges, popups and slides, core-menu waits, weapon list and item-shortcut counters | Scaled / 60 Hz ticks |
 | Flight unit | Rail movement and smoothing, ship movement, tilt and turn rates, behind-view battles, curve-following enemies, wingmen, shooter bullets and homing, lasers, scroll speed changes | Scaled (no frame cap) |
 | Hacking (and Ending E credits) | Ship and enemy speed smoothing and movement, respawn waits, spins, wave patterns, gun sweeps, hit cooldowns, items, bombs, knock-back | Scaled / 60 Hz ticks (no frame cap) |
