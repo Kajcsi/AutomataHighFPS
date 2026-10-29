@@ -304,5 +304,6 @@ void InstallSubsystemPatches() {
     FixHacking();
     FixMovementExtra();
     FixBulletsAndEnemies();
+    FixWorld();
     if (g_cfg.fixCloth) FixCloth();
 }

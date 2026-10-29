@@ -91,7 +91,7 @@ struct ArgCallPatch {
     Scale kind;
     float base;
 };
-struct VecCallPatch {  // call rel32: call the callee, then scale the 16-byte vector at the original rcx
+struct VecCallPatch {  // call rel32: call the callee, then scale x, y, z of the vector at the original rcx
     const char* name;
     const char* sig;
     const char* sigAlt;
@@ -121,3 +121,5 @@ bool PatchSite(const SigSite& s, F emit) {
     uint8_t* site = SiteOf(s);
     return site && InstallCaveUnchecked(s.name, site, s.len, false, [&](Asm& a) { emit(a, site); });
 }
+// `dec eax` followed by position-independent stores of eax (a frame counter) -> subtract ticks60.
+void DecEaxByTicks(const SigSite& s);

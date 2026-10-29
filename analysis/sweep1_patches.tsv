@@ -1,0 +1,106 @@
+name	steam	compat	primitive	sig_off	ins_len	disp_off	opcode	replace_len	instruction	formula	signature	verified
+SW1_AudEnv_80218_new	14013d2ee	14013d1ee	SCALE_CONST	0	8	4	F3 0F 59 05		mulss xmm0, dword ptr [rip + 0xc7d4ae]	lerp 0.10000002	F3 0F 59 05 ?? ?? ?? ?? F3 44 0F 10 05 ?? ?? ?? ?? F3 0F 59 0D ?? ?? ?? ?? F3 0F 59 15 ?? ?? ?? ?? F3 44 0F 59 05 ?? ?? ?? ?? F3 44 0F 58 C0	1
+SW1_AudEnv_6d768_old	14013d2ff	14013d1ff	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0xc7d515]	pow 0.95	F3 0F 59 0D ?? ?? ?? ?? F3 0F 59 15 ?? ?? ?? ?? F3 44 0F 59 05 ?? ?? ?? ?? F3 44 0F 58 C0	1
+SW1_AudEnv_80214_old	14013d307	14013d207	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0xc7d505]	pow 0.9	F3 0F 59 15 ?? ?? ?? ?? F3 44 0F 59 05 ?? ?? ?? ?? F3 44 0F 58 C0	1
+SW1_AudEnv_80218_old	14013d30f	14013d20f	SCALE_CONST	0	9	5	F3 44 0F 59 05		mulss xmm8, dword ptr [rip + 0xc7d4fc]	pow 0.9	F3 44 0F 59 05 ?? ?? ?? ?? F3 44 0F 58 C0 F3 0F 10 05 ?? ?? ?? ?? F3 0F 59 05 ?? ?? ?? ?? F3 0F 58 C8	1
+SW1_AudEnv_6d768_new	14013d325	14013d225	SCALE_CONST	0	8	4	F3 0F 59 05		mulss xmm0, dword ptr [rip + 0xc7d45b]	lerp 0.05	F3 0F 59 05 ?? ?? ?? ?? F3 0F 58 C8 F3 44 0F 11 05 ?? ?? ?? ?? F3 0F 10 05 ?? ?? ?? ?? F3 0F 59 05 ?? ?? ?? ?? F3 0F 11 0D ?? ?? ?? ?? F3 0F 58 D0	1
+SW1_AudEnv_80214_new	14013d342	14013d242	SCALE_CONST	0	8	4	F3 0F 59 05		mulss xmm0, dword ptr [rip + 0xc7d45a]	lerp 0.10000002	F3 0F 59 05 ?? ?? ?? ?? F3 0F 11 0D ?? ?? ?? ?? F3 0F 58 D0	1
+SW1_AudEnv_Dir_decay	14013d387	14013d287	SCALE_CONST	0	8	4	F3 0F 59 05		mulss xmm0, dword ptr [rip + 0xc7d491]	pow 0.98	F3 0F 59 05 ?? ?? ?? ?? F3 0F 58 C6 E8 ?? ?? ?? ?? 0F 57 C9	1
+SW1_Esp33_TrailFrameCount	1401edfe2	1401e7a12	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0xbcc856]	lin 1.0	F3 0F 58 05 ?? ?? ?? ?? 8B 8B D0 07 00 00	1
+SW1_Esp36_TrailFrameCount	1401ef668	1401e8fd8	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0xbcb1d0]	lin 1.0	F3 0F 58 05 ?? ?? ?? ?? 0F 58 93 10 02 00 00	1
+SW1_Esp47_EmitInterval	14022bd22	140225532	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0xb8eb16]	lin 1.0	F3 0F 5C 05 ?? ?? ?? ?? F3 0F 11 40 30	1
+SW1_FootIK_PelvisLerp	140410ac3	14040adb3	SCALE_CONST	0	8	4	F3 0F 59 35		mulss xmm6, dword ptr [rip + 0x840369]	lerp 0.3	F3 0F 59 35 ?? ?? ?? ?? F3 0F 58 73 4C	1
+SW1_FootIK_LegLerp	14041109c	14040b387	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x83fd90]	lerp 0.3	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 4B 2C	1
+SW1_FootIK_LegDecayA	1404110bf	14040b3aa	SCALE_CONST	0	8	4	F3 0F 59 05		mulss xmm0, dword ptr [rip + 0x9a974d]	pow 0.9	F3 0F 59 05 ?? ?? ?? ?? F3 0F 11 43 2C	1
+SW1_FootIK_LegDecayB	1404110ec	14040b3d7	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x9a9720]	pow 0.9	F3 0F 59 15 ?? ?? ?? ?? F3 44 0F 10 1D ?? ?? ?? ?? 0F 28 C2	1
+SW1_ManualAutoDoor_Timer	14041980b	14042d84b	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x9a0f49]	lin 0.016666668	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C1 F3 0F 11 83 E4 0A 00 00	1
+SW1_Ba2018_ItemBoxFade	14041a38d	14042e38d	SCALE_CONST	0	8	4	F3 0F 5C 0D		subss xmm1, dword ptr [rip + 0x9a03bf]	lin 0.01	F3 0F 5C 0D ?? ?? ?? ?? F3 0F 11 8F E0 0B 00 00	1
+SW1_ElevDoor_Timer	14041a921	14042e921	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x99fe33]	lin 0.016666668	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C6 F3 0F 11 83 FC 0A 00 00	1
+SW1_SteamPipe_BurstTimer	140424f5d	14043903d	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x9957f7]	lin 0.016666668	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C6 F3 0F 11 83 44 08 00 00	1
+SW1_Ba3010_Timer	140425d08	14043a318	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x994a4c]	lin 0.016666668	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C6 F3 0F 11 83 8C 09 00 00	1
+SW1_Ba0104_TimerA	14043ea89	140452309	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x97bccb]	lin 0.016666668	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C1 F3 0F 11 83 C4 11 00 00 73 10 0F 57 C0 C7 83 C4 11 00 00 00 00 00 00 0F 2F C1 77 58 8B 83 70 06 00 00 3D F2 F3 D0 4B 74 07	1
+SW1_Ba0104_TimerB	14043ec29	1404524a9	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x97bb2b]	lin 0.016666668	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C1 F3 0F 11 83 C4 11 00 00 73 10 0F 57 C0 C7 83 C4 11 00 00 00 00 00 00 0F 2F C1 77 58 8B 83 70 06 00 00 3D F2 F3 D0 4B 74 4B	1
+SW1_Ba0210_Timer	1404551ef	14042314f	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x965565]	lin 0.016666668	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C1 F3 0F 11 83 94 0D 00 00	1
+SW1_Ba1005_TimerE7C	140456510	140424630	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x964244]	lin 0.016666668	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C6 F3 0F 11 83 7C 0E 00 00	1
+SW1_Ba1005_TimerF24	1404567a3	1404248c3	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x963fb1]	lin 0.016666668	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C6 F3 0F 11 83 24 0F 00 00	1
+SW1_Ba1005_TimerE74	140456966	140424a86	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x963dee]	lin 0.016666668	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C1 F3 0F 11 83 74 0E 00 00	1
+SW1_BehaviorInstance_FadeIn	14045753a	140425700	SCALE_CONST	0	8	4	F3 0F 58 0D		addss xmm1, dword ptr [rip + 0x963242]	lin 0.05	F3 0F 58 0D ?? ?? ?? ?? F3 0F 59 4C 24 20 0F 2F CF || F3 0F 58 0D ?? ?? ?? ?? F3 0F 59 8C 24 B0 00 00 00 0F 2F CF	1
+SW1_Baa000_TurnEnvelope	140465585	14045f805	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x82ede3]	lin 0.016	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C7 F3 0F 11 87 5C 0C 00 00	1
+SW1_Baa000_TurnAccelC54	140465caf	14045ff2f	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x954a71]	lin 0.0017453292	F3 0F 58 05 ?? ?? ?? ?? 0F 2F 05 ?? ?? ?? ?? F3 0F 11 83 54 0C 00 00	1
+SW1_Baa000_TurnRampC58a	14046611b	14046039b	SCALE_CONST	22	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x9545f9]	lin 0.001	E9 ?? ?? ?? ?? 48 8B 07 48 8B CF FF 50 48 F3 0F 10 87 58 0C 00 00 F3 0F 58 05 ?? ?? ?? ?? F3 0F 10 15 ?? ?? ?? ?? 0F 2F C2	1
+SW1_Baa000_RampC60a	14046708e	14046130e	SCALE_CONST	23	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x82d2d2]	lin 0.014	FF 90 60 02 00 00 48 8B 03 48 8B CB FF 50 48 F3 0F 10 93 60 0C 00 00 F3 0F 58 15 ?? ?? ?? ?? F3 0F 11 93 60 0C 00 00	1
+SW1_Baa000_LeanLerpA	1404672d8	140461558	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x9534c0]	lerp 0.1	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D1 F3 0F 11 93 40 2D 00 00 FF 90 58 02 00 00 44 0F 2F 8B 60 0C 00 00	1
+SW1_Baa000_RampC60b	140467402	140461682	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x82cf66]	lin 0.016	F3 0F 58 05 ?? ?? ?? ?? 41 0F 2F C1 F3 0F 11 83 60 0C 00 00	1
+SW1_Baa000_RampC60c	140467dbb	14046203b	SCALE_CONST	45	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x82c5a1]	lin 0.013	F3 0F 11 74 24 28 89 7C 24 20 FF 90 08 02 00 00 FF 83 74 06 00 00 89 BB 60 0C 00 00 48 8B 03 48 8B CB FF 50 48 F3 0F 10 93 60 0C 00 00 F3 0F 58 15 ?? ?? ?? ?? F3 0F 11 93 60 0C 00 00	1
+SW1_Baa000_LeanLerpB	140467fad	14046222d	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x9527eb]	lerp 0.1	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D1 F3 0F 11 93 40 2D 00 00 FF 90 58 02 00 00 48 8B BB 60 08 00 00	1
+SW1_Baa000_TurnRampC58b	1404688a5	140462b25	SCALE_CONST	0	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x951e5f]	lin 0.00025	F3 0F 58 15 ?? ?? ?? ?? F3 0F 11 93 58 0C 00 00 F3 0F 10 1D ?? ?? ?? ?? 48 8D 54 24 40 48 8B CB E8 ?? ?? ?? ?? 48 8B 5C 24 70	1
+SW1_Baa000_StuckTimer	140469571	1404637f1	SCALE_CONST	0	8	4	F3 0F 58 0D		addss xmm1, dword ptr [rip + 0x9511e3]	lin 0.016666668	F3 0F 58 0D ?? ?? ?? ?? 0F 2F 0D ?? ?? ?? ?? F3 0F 11 8F F4 2D 00 00	1
+SW1_Baa010_TurnRampC58a	14046ae12	140465092	SCALE_CONST	23	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x94f902]	lin 0.001	0F 83 ?? ?? ?? ?? 48 8B 07 48 8B CF FF 50 48 F3 0F 10 87 58 0C 00 00 F3 0F 58 05 ?? ?? ?? ?? F3 0F 10 15 ?? ?? ?? ?? 0F 2F C2	1
+SW1_Baa010_RampC60a	14046bf99	140466219	SCALE_CONST	0	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x8283c7]	lin 0.014	F3 0F 58 15 ?? ?? ?? ?? F3 0F 11 93 60 0C 00 00 F3 0F 10 86 3C 14 00 00 39 BE D0 13 00 00 74 11	1
+SW1_Baa010_LeanLerpA	14046c1b7	140466437	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x94e5e1]	lerp 0.1	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D1 F3 0F 11 93 20 2D 00 00 FF 90 58 02 00 00 48 8B 03 33 D2	1
+SW1_Baa010_RampC5Ca	14046c269	1404664e9	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x8280eb]	lin 0.008	F3 0F 58 05 ?? ?? ?? ?? 0F 2F C6 F3 0F 11 83 5C 0C 00 00	1
+SW1_Baa010_AnimSpeedRamp	14046c737	1404669b7	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x827c59]	lin 0.04	F3 0F 58 05 ?? ?? ?? ?? 0F 2F C7 F3 0F 11 83 5C 0C 00 00	1
+SW1_Baa010_RampC60b	14046cbeb	140466e6b	SCALE_CONST	45	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x827771]	lin 0.013	F3 0F 11 7C 24 28 89 7C 24 20 FF 90 08 02 00 00 FF 83 74 06 00 00 89 BB 60 0C 00 00 48 8B 03 48 8B CB FF 50 48 F3 0F 10 93 60 0C 00 00 F3 0F 58 15 ?? ?? ?? ?? F3 0F 11 93 60 0C 00 00	1
+SW1_Baa010_LeanLerpB	14046cddd	14046705d	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x94d9bb]	lerp 0.1	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D1 F3 0F 11 93 20 2D 00 00 FF 90 58 02 00 00 48 8B 03 48 8B CB	1
+SW1_Baa010_RampC60c	14046cf2c	1404671ac	SCALE_CONST	0	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x94d820]	lin 0.01	F3 0F 58 15 ?? ?? ?? ?? F3 0F 11 93 60 0C 00 00 83 BF D0 13 00 00 00	1
+SW1_Baa010_TurnRampC58b_add	14046d91f	140467b9f	SCALE_CONST	0	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x8269f5]	lin 0.0002	F3 0F 58 15 ?? ?? ?? ?? EB 08 F3 0F 59 15 ?? ?? ?? ?? F3 0F 11 97 58 0C 00 00	1
+SW1_Baa010_TurnRampC58b_mul	14046d929	140467ba9	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x826b97]	pow 1.01	F3 0F 59 15 ?? ?? ?? ?? F3 0F 11 97 58 0C 00 00	1
+SW1_Baa010_TurnRampC58c	14046dc5c	140467edc	SCALE_CONST	0	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x94caa8]	lin 0.00025	F3 0F 58 15 ?? ?? ?? ?? F3 0F 11 93 58 0C 00 00 F3 0F 10 1D ?? ?? ?? ?? 48 8D 54 24 40 48 8B CB E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 48 8B 03	1
+SW1_Baa020_VelLerpY	14046f122	1404693a2	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x94b676]	lerp 0.1	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D0 F3 0F 10 83 58 0C 00 00	1
+SW1_Baa020_VelLerpZ	14046f142	1404693c2	SCALE_CONST	0	8	4	F3 0F 59 1D		mulss xmm3, dword ptr [rip + 0x94b656]	lerp 0.1	F3 0F 59 1D ?? ?? ?? ?? F3 0F 58 D8 F3 0F 11 9B 58 0C 00 00	1
+SW1_Baa020_VelIntegrate	14046f169	1404693e9	SCALE_VEC_RESULT_CALL	0	5				call 0x140265fd0	call 0x140265fd0 (rotate velocity into rsp+0x50); scale result vec [rcx] by e before it is added to position [rbx+0x50]	E8 ?? ?? ?? ?? 48 8D 4B 50 48 8B D1 4C 8D 44 24 50 E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 85 C0	1
+SW1_Baa020_Timer2DD8	14046f8a7	140469b16	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x94aead]	lin 0.016666668	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C6 F3 0F 11 83 D8 2D 00 00	1
+SW1_FlightUnit_BoneLerpX	1404815cc	14047b71c	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x9391cc]	lerp 0.1	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 C8 F3 0F 11 8B 90 0C 00 00	1
+SW1_FlightUnit_BoneLerpY	140481655	14047b7a5	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x939143]	lerp 0.1	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 C8 F3 0F 11 8B 9C 0C 00 00	1
+SW1_FlightUnit_BoneLerpZ	1404816e2	14047b832	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x9390b6]	lerp 0.1	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 C8 F3 0F 11 8B A8 0C 00 00	1
+SW1_Pl_Blend1488_A	1404a3e27	14049de87	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x916955]	lerp 0.05	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 C8 F3 0F 11 8B 88 14 00 00 F3 0F 11 4C 24 20 FF 90 58 02 00 00 0F 28 DF	1
+SW1_Pl_Blend1488_B	1404a4235	14049e295	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x916547]	lerp 0.05	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 C8 F3 0F 11 8B 88 14 00 00 F3 0F 11 4C 24 20 FF 90 58 02 00 00 48 8B 03	1
+SW1_Pl_Blend1480	1404a9a70	1404a3a80	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x910d28]	lerp 0.1	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D1 F3 0F 11 97 80 14 00 00	1
+SW1_Pl_SpeedMul1A90	1404a9bf8	1404a3c08	SCALE_CONST	0	8	4	F3 0F 59 35		mulss xmm6, dword ptr [rip + 0x910ba0]	lerp 0.1	F3 0F 59 35 ?? ?? ?? ?? F3 0F 58 F0 F3 0F 11 B7 90 1A 00 00	1
+SW1_PlFU_OffsetVelX	1404b857d	1404b264d	SCALE_CONST	0	8	4	F3 0F 59 25		mulss xmm4, dword ptr [rip + 0x7dbdc3]	lerp 0.004	F3 0F 59 25 ?? ?? ?? ?? F3 0F 58 E0 F3 0F 10 83 78 1A 00 00	1
+SW1_PlFU_OffsetVelY	1404b85a0	1404b2670	SCALE_CONST	0	8	4	F3 0F 59 2D		mulss xmm5, dword ptr [rip + 0x7dbda0]	lerp 0.004	F3 0F 59 2D ?? ?? ?? ?? F3 0F 58 E8	1
+SW1_PlFU_OffsetIntegrate	1404b85b7	1404b2687	SCALE_VEC_RESULT_CALL	0	5				call 0x140265e60	call 0x140265e60 builds velocity vec at rcx=[rbp-0x19] (x=[0x1a74],y=[0x1a78],0,1); scale it by e before offset [rbx+0x15be0] += vec	E8 ?? ?? ?? ?? 4C 8D 45 E7 48 8B D6 48 8B CE E8 ?? ?? ?? ?? F3 0F 10 06	1
+SW1_PlFU_PushObj	1404b82be	1404b238e	SCALE_ARG_CALL	0	5				call 0x140265f80	xmm2 *= e (call 0x140265f80: per-frame push step dir*k added to [r14+0x50])	E8 ?? ?? ?? ?? 49 8D 4E 50 48 8B D1 4C 8D 45 E7	1
+SW1_PlFU_DelayCtr	1404b8725	1404b27f5	INT_COUNTER	0	2			8	dec eax; mov dword ptr [rbx + 0x1a94], eax	replace 8B (FF C8 89 83 94 1A 00 00): sub eax,[ticks60]; mov [rbx+0x1A94],eax; resume +8 (test eax,eax / jg follow, flags dead); live: eax, rbx	FF C8 89 83 94 1A 00 00 85 C0 7F	1
+SW1_Pl_AnimSpeed1A78_A	1404c0f3a	1404bafaa	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x8f9882]	lerp 0.2	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 C8 F3 0F 11 8E 78 1A 00 00	1
+SW1_Pl_PosYLerpA	1404c1186	1404bb1f6	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x8f95f6]	lerp 0.05	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 4E 54 F3 0F 11 4E 54 0F 28 DE	1
+SW1_PlDive_PitchA_k	1404c2b5d	1404bcbbd	SCALE_CONST	0	8	4	F3 0F 59 05		mulss xmm0, dword ptr [rip + 0x8f7c03]	lerp 0.02	F3 0F 59 05 ?? ?? ?? ?? 48 8B CB F3 0F 58 05 ?? ?? ?? ?? F3 0F 5C C8	1
+SW1_PlDive_PitchA_c	1404c2b68	1404bcbc8	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x7d181c]	lin 0.03141593	F3 0F 58 05 ?? ?? ?? ?? F3 0F 5C C8 F3 0F 11 8B 90 00 00 00 FF 90 28 02 00 00	1
+SW1_PlDive_SpeedLerp	1404c2bf2	1404bcc52	SCALE_CONST	0	8	4	F3 0F 59 1D		mulss xmm3, dword ptr [rip + 0x8f7b6e]	lerp 0.02	F3 0F 59 1D ?? ?? ?? ?? F3 0F 58 D8 F3 0F 11 9B 78 1A 00 00	1
+SW1_PlDive_Integrate	1404c2c19	1404bcc79	SCALE_VEC_RESULT_CALL	0	5				call 0x140265fd0	call 0x140265fd0 rotates fwd velocity (0,0,[0x1a78]) at rcx=[rsp+0x40]; scale by e before position [rbx+0x50] += vec	E8 ?? ?? ?? ?? 48 8D 4B 50 48 8B D1 4C 8D 44 24 40 E8 ?? ?? ?? ?? F3 0F 10 8B 90 00 00 00	1
+SW1_PlDive_PitchB_k	1404c2c43	1404bcca3	SCALE_CONST	0	8	4	F3 0F 59 05		mulss xmm0, dword ptr [rip + 0x8f7b55]	lerp 0.1	F3 0F 59 05 ?? ?? ?? ?? 0F 28 D6 48 8B CB	1
+SW1_PlDive_PitchB_c	1404c2c51	1404bccb1	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x7d179b]	lin 0.15707964	F3 0F 58 05 ?? ?? ?? ?? F3 0F 5C C8 F3 0F 11 8B 90 00 00 00 0F 28 CE	1
+SW1_Pl_Blend1A74_C	1404c4885	1404be8e5	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x8f5ef7]	lerp 0.05	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D0 F3 0F 11 97 74 1A 00 00	1
+SW1_Pl_BeamLenA	1404c5030	1404bf090	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x8f592c]	lin 10.0	F3 0F 58 05 ?? ?? ?? ?? 0F 28 DF F3 0F 11 7C 24 20 0F 57 D2 0F 57 C9 F3 0F 11 87 74 1A 00 00 E8 ?? ?? ?? ?? 41 0F 28 D1 48 8D 55 D0	1
+SW1_Pl_BeamLenB	1404c526f	1404bf2cf	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x8f56ed]	lin 10.0	F3 0F 58 05 ?? ?? ?? ?? 0F 28 DF F3 0F 11 7C 24 20 0F 57 D2 0F 57 C9 F3 0F 11 87 74 1A 00 00 E8 ?? ?? ?? ?? 41 0F 28 D1 48 8D 55 90	1
+SW1_Pl_PosYLerpB	1404c7a20	1404c1a60	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x8f2d5c]	lerp 0.05	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 4E 54 F3 0F 11 4E 54 4C 8D 9C 24 D0 00 00 00	1
+SW1_Pl_FadeOut1A7C	1404c82e1	1404c2321	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x785493]	lin 0.025	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C7 F3 0F 11 83 7C 1A 00 00	1
+SW1_Pl_AnimSpeed1A74_D	1404c9c9e	1404c3cbe	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x8f0afa]	lerp 0.1	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 C8 0F 28 DF	1
+SW1_Pl_Blend1480_B	1404ca133	1404c4153	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x8f0665]	lerp 0.1	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D0 F3 0F 10 83 88 14 00 00	1
+SW1_Pl_Blend1480_C	1404ca9fd	1404c4a1d	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x8efd9b]	lerp 0.1	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D1 F3 0F 11 93 80 14 00 00	1
+SW1_Pl_9SMemRecvProgress	1404ccb7e	1404c6b9e	SCALE_CONST	0	8	4	F3 0F 58 35		addss xmm6, dword ptr [rip + 0x8edbbe]	lin 0.005	F3 0F 58 35 ?? ?? ?? ?? 0F 57 C0	1
+SW1_Pl_ObjBlendA_lerp	1404ce418	1404c8438	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x8ec380]	lerp 0.1	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D0 EB 10	1
+SW1_Pl_ObjBlendA_decay	1404ce42e	1404c844e	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x8ec3de]	pow 0.9	F3 0F 59 15 ?? ?? ?? ?? F3 0F 11 97 74 1A 00 00	1
+SW1_Pl_ObjBlendB_decay	1404ce583	1404c85a3	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x8ec289]	pow 0.9	F3 0F 59 0D ?? ?? ?? ?? EB 1B	1
+SW1_Pl_ObjBlendB_lerp	1404ce59c	1404c85bc	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x8ec1fc]	lerp 0.1	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 C8 F3 0F 11 8F 74 1A 00 00	1
+SW1_Pl_Push16A60_decay	1404cf1a8	1404c915d	SCALE_CONST	0	8	4	F3 0F 59 05		mulss xmm0, dword ptr [rip + 0x8eb664]	pow 0.9	F3 0F 59 05 ?? ?? ?? ?? F3 0F 11 83 74 1A 00 00	1
+SW1_Pl_AnimSpeed1A84	1404d40ac	1404ce03c	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x8e66d0]	lerp 0.05	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D0 F3 0F 11 97 84 1A 00 00	1
+SW1_Pl_Blend1480_D	1404d43fd	1404ce38d	SCALE_CONST	0	8	4	F3 0F 59 05		mulss xmm0, dword ptr [rip + 0x8e639b]	lerp 0.1	F3 0F 59 05 ?? ?? ?? ?? F3 0F 58 C1 F3 0F 11 87 80 14 00 00	1
+SW1_Pl_Fade1A7C_B	1404d81c9	1404d2159	SCALE_CONST	0	8	4	F3 0F 5C 0D		subss xmm1, dword ptr [rip + 0x8e2583]	lin 0.01	F3 0F 5C 0D ?? ?? ?? ?? 0F 2F C8 F3 0F 11 8F 7C 1A 00 00	1
+SW1_Pl_Offset16A68	1404debc4	1404d8b24	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x8dbc38]	lin 0.75	F3 0F 58 05 ?? ?? ?? ?? F3 0F 58 8B 18 6C 01 00	1
+SW1_Pl_AttachPosLerpX	1404e32db	1404dd1cc	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x8d74bd]	lerp 0.1	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 4B 50	1
+SW1_Pl_AttachPosLerpZ	1404e32f7	1404dd1e8	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x8d74a1]	lerp 0.1	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 4B 58	1
+SW1_Baa000_TurnRampC58c	140501e3d	1404fbc9d	SCALE_CONST	0	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x8b88ef]	lin 0.003	F3 0F 58 15 ?? ?? ?? ?? F3 0F 11 93 58 0C 00 00 F3 0F 59 15 ?? ?? ?? ?? 48 8D 93 10 2E 00 00	1
+SW1_Baa000_TurnRampC58d_add	140501ffa	1404fbe5a	SCALE_CONST	0	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x79231a]	lin 0.0002	F3 0F 58 15 ?? ?? ?? ?? EB 08 F3 0F 59 15 ?? ?? ?? ?? F3 0F 11 93 58 0C 00 00	1
+SW1_Baa000_TurnRampC58d_mul	140502004	1404fbe64	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x7924bc]	pow 1.01	F3 0F 59 15 ?? ?? ?? ?? F3 0F 11 93 58 0C 00 00	1
+SW1_Baa000_RampC5C_b	140502b69	1404fc9c9	SCALE_CONST	0	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x791807]	lin 0.022	F3 0F 58 15 ?? ?? ?? ?? F3 0F 11 93 5C 0C 00 00	1
+SW1_Baa010_TurnRampC58d	1405031aa	1404fd00a	SCALE_CONST	0	8	4	F3 0F 58 15		addss xmm2, dword ptr [rip + 0x8b7582]	lin 0.003	F3 0F 58 15 ?? ?? ?? ?? F3 0F 11 93 58 0C 00 00 F3 0F 59 15 ?? ?? ?? ?? 48 8D 93 C0 2D 00 00	1
+SW1_Pl_Fade164C0	14051ef9a	14051895a	SCALE_CONST	0	8	4	F3 0F 5C 0D		subss xmm1, dword ptr [rip + 0x89b7c6]	lin 0.02	F3 0F 5C 0D ?? ?? ?? ?? F3 0F 5F CE	1
+SW1_Pl_Scale164CC	140520e9d	14051a84d	SCALE_CONST	0	8	4	F3 0F 59 15		mulss xmm2, dword ptr [rip + 0x8998fb]	lerp 0.1	F3 0F 59 15 ?? ?? ?? ?? F3 0F 58 D0 F3 0F 10 83 D0 64 01 00	1
+SW1_Pl_Scale164D0	140520ebd	14051a86d	SCALE_CONST	0	8	4	F3 0F 59 1D		mulss xmm3, dword ptr [rip + 0x8998db]	lerp 0.1	F3 0F 59 1D ?? ?? ?? ?? F3 0F 11 93 50 76 01 00	1
+SW1_Pl_Offset16A68_ramp	1404de8af	1404d880f	SCALE_CONST	0	8	4	F3 0F 59 05		mulss xmm0, dword ptr [rip + 0x8dbf4d]	lin 0.75	F3 0F 59 05 ?? ?? ?? ?? F3 0F 58 CA F3 0F 58 81 68 6A 01 00	1
+SW1_Pl_Wait16958	140524469	14051de19	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x8963cf]	lin 1.0	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C7 F3 0F 11 83 58 69 01 00	1
+SW1_FlightUnit_AttachDist17D4	1405254bd	14051ee6d	SCALE_CONST	0	8	4	F3 0F 59 0D		mulss xmm1, dword ptr [rip + 0x8952db]	lerp 0.1	F3 0F 59 0D ?? ?? ?? ?? F3 0F 58 C8 F3 0F 11 8E D4 17 00 00	1
+SW1_EndRollEnemy_ZDecay	1405d238e	1405cb68e	SCALE_CONST	0	8	4	F3 0F 59 05		mulss xmm0, dword ptr [rip + 0x7e848a]	pow 0.98	F3 0F 59 05 ?? ?? ?? ?? F3 0F 11 47 58	1
+SW1_ItemFeed_Timer	1405eb058	1405e4308	SCALE_CONST	0	8	4	F3 0F 5C 05		subss xmm0, dword ptr [rip + 0x7cf7e0]	lin 1.0	F3 0F 5C 05 ?? ?? ?? ?? 0F 2F C6 F3 0F 11 87 58 08 00 00 73 08	1
+SW1_DropItem_MagnetRamp	1405ee891	1405e7a81	SCALE_CONST	0	8	4	F3 0F 58 05		addss xmm0, dword ptr [rip + 0x7cbeab]	lin 0.005	F3 0F 58 05 ?? ?? ?? ?? 0F 2F 05 ?? ?? ?? ?? F3 0F 11 87 30 08 00 00	1

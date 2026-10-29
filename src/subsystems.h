@@ -10,6 +10,7 @@ void FixHacking();
 void FixMovementExtra();
 void FixCloth();
 void FixBulletsAndEnemies();
+void FixWorld();
 // Replaces the original Cloth::Step the hook calls (test harness only).
 void SetClothStepForTest(void (*step)(unsigned char* cloth, float dt, int flag));
 

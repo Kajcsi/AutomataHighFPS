@@ -341,14 +341,24 @@ void InstallTable(const VecCallPatch* rows, size_t n) {
             a.call(callee);                                       // original: [rcx] = vector * matrix
             a.raw({0x48, 0x8B, 0x4C, 0x24, 0x20});                // mov rcx, [rsp+0x20]
             a.raw({0x0F, 0x10, 0x01});                            // movups xmm0, [rcx]
+            a.raw({0x44, 0x8B, 0x51, 0x0C});                      // mov r10d, [rcx+12] (w as the game set it)
             a.raw({0xF3, 0x0F, 0x10, 0x0D}).rip(&S->stepUpToOne);  // movss xmm1, [e]
             a.raw({0x0F, 0xC6, 0xC9, 0x00});                      // shufps xmm1, xmm1, 0
             a.raw({0x0F, 0x59, 0xC1});                            // mulps xmm0, xmm1
             a.raw({0x0F, 0x11, 0x01});                            // movups [rcx], xmm0
+            a.raw({0x44, 0x89, 0x51, 0x0C});                      // mov [rcx+12], r10d
             a.raw({0x48, 0x83, 0xC4, 0x28});                      // add rsp, 0x28
             a.raw({0xC3});                                        // ret
         });
     }
+}
+
+void DecEaxByTicks(const SigSite& s) {
+    PatchSite(s, [&](Asm& a, uint8_t* site) {
+        a.raw({0x2B, 0x05}).rip(&S->ticks60);  // sub eax, [ticks60]
+        a.copy(site + 2, s.len - 2);
+        a.jmp(site + s.len);
+    });
 }
 
 uint8_t* SiteOf(const SigSite& s) {

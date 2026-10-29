@@ -19,15 +19,6 @@ static void SseRip(Asm& a, uint8_t op, uint8_t reg, const void* target) {
 }
 const uint8_t kMovss = 0x10, kAddss = 0x58, kMulss = 0x59;
 
-// `dec eax` followed by stores of eax (frame counter) -> subtract ticks60.
-static void DecByTicks(const SigSite& s) {
-    PatchSite(s, [&](Asm& a, uint8_t* site) {
-        a.raw({0x2B, 0x05}).rip(&S->ticks60);  // sub eax, [ticks60]
-        a.copy(site + 2, s.len - 2);
-        a.jmp(site + s.len);
-    });
-}
-
 // `mulss xmm<reg>, xmmK` where xmmK holds the per-frame smoothing factor 0.1.
 static void MulByScaled(const SigSite& s, uint8_t reg, const float* k) {
     PatchSite(s, [&](Asm& a, uint8_t* site) {
@@ -136,7 +127,7 @@ static void FixEnemies() {
     for (const SigSite* s : {&kBlt_EM_Win2C328, &kBlt_EM_Cd27E64, &kBlt_EM_Win27E5C, &kBlt_EM_TimeOverrideCtr,
                              &kBlt_POD_Ctr181C, &kBlt_EM_Wait275DC, &kBlt_EM_Wait275E0, &kBlt_EM_FxInterval2C378,
                              &kBlt_EM_Wait275DC_b, &kBlt_EM_TimeReqDelay6178, &kBlt_EM_TimeReqDur6174})
-        DecByTicks(*s);
+        DecEaxByTicks(*s);
 }
 
 void FixBulletsAndEnemies() {
