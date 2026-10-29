@@ -32,7 +32,12 @@ static const char kDefaultIni[] =
     "[Display]\r\n"
     "; In exclusive fullscreen, request the highest refresh rate the monitor\r\n"
     "; supports at the chosen resolution instead of 60 Hz.\r\n"
-    "ForceMaxRefreshRate=1\r\n";
+    "ForceMaxRefreshRate=1\r\n"
+    "\r\n"
+    "[Debug]\r\n"
+    "; 1 = log the player's jump/fall state, phase and height every frame to AutomataHighFPS.log.\r\n"
+    "; Read while the game runs, so it can be switched on and off without restarting.\r\n"
+    "JumpLog=0\r\n";
 
 static int ReadInt(const wchar_t* path, const wchar_t* sec, const wchar_t* key, int def) {
     wchar_t buf[64];
@@ -41,7 +46,18 @@ static int ReadInt(const wchar_t* path, const wchar_t* sec, const wchar_t* key, 
     return (int)wcstol(buf, nullptr, 0);  // accepts decimal, 0x hex and negative values
 }
 
+static wchar_t g_iniPath[MAX_PATH];
+
+void RefreshDebugConfig() {
+    static ULONGLONG last;
+    ULONGLONG now = GetTickCount64();
+    if (!g_iniPath[0] || now - last < 2000) return;
+    last = now;
+    g_cfg.debugJumpLog = ReadInt(g_iniPath, L"Debug", L"JumpLog", 0) != 0;
+}
+
 void LoadConfig(const wchar_t* path) {
+    wcscpy_s(g_iniPath, path);
     if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES) {
         HANDLE h = CreateFileW(path, GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
         if (h != INVALID_HANDLE_VALUE) {
@@ -60,5 +76,6 @@ void LoadConfig(const wchar_t* path) {
     g_cfg.menuFps = ReadInt(path, L"Limits", L"MenuFPS", 0);
     g_cfg.unlimitedLoading = ReadInt(path, L"Limits", L"UnlimitedLoading", 1) != 0;
     g_cfg.forceMaxRefresh = ReadInt(path, L"Display", L"ForceMaxRefreshRate", 1) != 0;
+    g_cfg.debugJumpLog = ReadInt(path, L"Debug", L"JumpLog", 0) != 0;
     if (g_cfg.targetFps < -1) g_cfg.targetFps = -1;
 }

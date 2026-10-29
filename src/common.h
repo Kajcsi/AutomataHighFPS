@@ -22,9 +22,12 @@ struct Config {
     bool unlimitedLoading = true;  // uncap loading screens (faster loads)
     bool forceMaxRefresh = true;   // exclusive fullscreen uses the highest refresh rate
     int toggleKey = VK_F11;        // toggles a temporary 60 fps cap
+    bool debugJumpLog = false;     // log the player's jump/fall states every frame (diagnostics)
 };
 extern Config g_cfg;
 void LoadConfig(const wchar_t* path);
+// Re-reads the [Debug] settings from the INI (at most every 2 s), so they apply while the game runs.
+void RefreshDebugConfig();
 
 // Directory of the game executable, with trailing backslash.
 const wchar_t* GameDir();

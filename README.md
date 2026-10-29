@@ -16,7 +16,7 @@ matching, that fix is skipped and logged instead of patching the wrong code.
    game folder.
 3. Start the game normally from Steam.
 
-`uninstall.bat` removes it again. Check `AutomataHighFPS.log` in the game folder
+`install.bat` also works while the game is running; the new version is used from the next launch. `uninstall.bat` removes it again. Check `AutomataHighFPS.log` in the game folder
 to see which patches were applied.
 
 The DLL loads as `dinput8.dll`, so it doesn't conflict with ReShade or Special K
@@ -36,6 +36,7 @@ The DLL loads as `dinput8.dll`, so it doesn't conflict with ReShade or Special K
 | `MenuFPS` | `0` | Optional frame rate cap while a menu is open (`0` = no cap). |
 | `UnlimitedLoading` | `1` | Removes the frame limit on loading screens, which shortens loads. |
 | `ForceMaxRefreshRate` | `1` | Exclusive fullscreen uses the monitor's highest refresh rate instead of 60 Hz. |
+| `JumpLog` (`[Debug]`) | `0` | Logs the player's jump/fall state, phase and height every frame to `AutomataHighFPS.log`. Takes effect while the game runs. |
 
 With V-Sync on in the game's options, the frame rate is also capped by the
 monitor's refresh rate.
@@ -70,7 +71,7 @@ changes nothing there. All values are recomputed once per frame.
 
 ## Fixes
 
-About 860 patches, located by signature in both executables:
+About 890 patches, located by signature in both executables:
 
 | Area | What was frame-dependent | Fix |
 |---|---|---|
@@ -90,6 +91,7 @@ About 860 patches, located by signature in both executables:
 | HUD and menus | Boss HP gauge, operating-ratio and pollution gauges, popups and slides, core-menu waits, weapon list and item-shortcut counters | Scaled / 60 Hz ticks |
 | Flight unit | Rail movement and smoothing, ship movement, tilt and turn rates, behind-view battles, curve-following enemies, wingmen, shooter bullets and homing, lasers, scroll speed changes | Scaled (no frame cap) |
 | Hacking (and Ending E credits) | Ship and enemy speed smoothing and movement, respawn waits, spins, wave patterns, gun sweeps, hit cooldowns, items, bombs, knock-back | Scaled / 60 Hz ticks (no frame cap) |
+| Animation inputs | Playback runs on the frame time, but some states smoothed or ramped the playback speed, blend parameters and root-motion scale once per update (player run and turn states, an escort blend ramp, the Baa000 mount speed, shared enemy turn states) | Scaled |
 | Fishing | Bobber settle | Scaled |
 | 9S hack gauge | Decay per frame | Scaled |
 | Frame-time-scaled smoothing | Turn and approach fractions the game multiplies by the frame time (shared enemy and NPC turn helpers, turn-to-point, pod follow and orbit, animals, player flight and states, camera modes) scale only linearly, so they still settled faster above 60 FPS | Exact 60 FPS equivalent, identical at 60 FPS, slow motion kept |

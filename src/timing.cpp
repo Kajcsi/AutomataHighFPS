@@ -3,6 +3,7 @@
 #include "memory.h"
 #include "display.h"
 #include "patchkit.h"
+#include "subsystems.h"
 #include <cmath>
 
 SharedState* S;
@@ -98,6 +99,8 @@ void OnUpdateTimeStep(void* obj, int variableStep, float fixedStep) {
     S->tickPhase = (float)g_tickAcc;
     UpdateScaledConstants(S->stepUpToOne);
     UpdateLimiter();
+    RefreshDebugConfig();
+    if (g_cfg.debugJumpLog) DebugJumpFrame();
     PollHotkey();
 }
 
