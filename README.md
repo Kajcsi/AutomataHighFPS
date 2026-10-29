@@ -70,7 +70,7 @@ changes nothing there. All values are recomputed once per frame.
 
 ## Fixes
 
-About 790 patches, located by signature in both executables:
+About 860 patches, located by signature in both executables:
 
 | Area | What was frame-dependent | Fix |
 |---|---|---|
@@ -92,6 +92,7 @@ About 790 patches, located by signature in both executables:
 | Hacking (and Ending E credits) | Ship and enemy speed smoothing and movement, respawn waits, spins, wave patterns, gun sweeps, hit cooldowns, items, bombs, knock-back | Scaled / 60 Hz ticks (no frame cap) |
 | Fishing | Bobber settle | Scaled |
 | 9S hack gauge | Decay per frame | Scaled |
+| Frame-time-scaled smoothing | Turn and approach fractions the game multiplies by the frame time (shared enemy and NPC turn helpers, turn-to-point, pod follow and orbit, animals, player flight and states, camera modes) scale only linearly, so they still settled faster above 60 FPS | Exact 60 FPS equivalent, identical at 60 FPS, slow motion kept |
 | Cloth and hair | The solver steps once per frame with per-step damping and constraint passes, so cloth turned stiffer and slower | Simulated in real 60 Hz steps; frames in between show a partial-step preview that is rolled back before the next step |
 
 If something misbehaves, press F11 to drop to 60 FPS while you get past it, and

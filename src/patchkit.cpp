@@ -442,6 +442,57 @@ bool LerpAround(const SigSite& s, uint8_t reg, bool after) {
     });
 }
 
+const float* ConstFloat(float v) {
+    float* p = (float*)g_arena.Alloc(4, 4);
+    if (p) *p = v;
+    return p;
+}
+
+const float* InvE() {
+    static const float* inv = NewScaled("1/e", Scale::Inv, 1.0f);
+    return inv;
+}
+
+bool ExactFraction(const SigSite& s, size_t prefix, uint8_t reg) {
+    return PatchSite(s, [&](Asm& a, uint8_t* site) {
+        a.copy(site, prefix);
+        EmitSseRip(a, kMulss, reg, InvE());
+        if (prefix == s.len) EmitSseRip(a, kMinss, reg, NearOne());
+        else a.copy(site + prefix, s.len - prefix);  // the original min with 1.0
+        EmitFloatCall(a, &LerpE, reg, reg);
+        a.jmp(site + s.len);
+    });
+}
+
+bool ExactArgCall(const SigSite& s, float k) {
+    uint8_t* site = SiteOf(s);
+    if (!site) return false;
+    if (site[0] != 0xE8) {
+        Log("  [skip] %s: no call at site", s.name);
+        return false;
+    }
+    uint8_t* callee = RipTarget(site, 1, 5);
+    const float* kc = k != 0.0f ? ConstFloat(k) : nullptr;
+    const float* invK = k != 0.0f ? ConstFloat(1.0f / k) : nullptr;
+    const float* inv = InvE();
+    return InstallCaveUnchecked(s.name, site, 5, true, [&](Asm& a) {
+        uint8_t* je = nullptr;
+        if (kc) {
+            a.raw({0x81, 0x3D}).rip(&S->stepUpToOne, 4).i32(0x3F800000);  // cmp dword [e], 1.0
+            je = a.jccForward(0x4);                                         // je tail (vanilla call)
+            EmitSseRip(a, kMulss, 2, kc);                                   // xmm2 = k * d
+        }
+        EmitSseRip(a, kMulss, 2, inv);
+        EmitSseRip(a, kMinss, 2, NearOne());
+        EmitFloatCall(a, &LerpE, 2, 2, true);
+        if (kc) {
+            EmitSseRip(a, kMulss, 2, invK);                                 // the callee multiplies by k again
+            a.bind(je);
+        }
+        a.jmp(callee);
+    });
+}
+
 bool LerpObjectFactor(const SigSite& s) {
     const uint8_t* op = s.orig + ((s.orig[1] & 0xF0) == 0x40 ? 2 : 1);
     uint8_t modrm = op[2];

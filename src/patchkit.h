@@ -150,3 +150,16 @@ bool ReplayThenScale(const SigSite& s, uint8_t reg);
 bool LerpAround(const SigSite& s, uint8_t reg, bool after);
 // `mulss xD, [reg+disp]` with a per-object smoothing factor -> xD *= LerpE([reg+disp]).
 bool LerpObjectFactor(const SigSite& s);
+// A float constant in the near arena (reachable RIP-relative from caves).
+const float* ConstFloat(float v);
+// 1/e for the current frame (1.0 at <= 60 FPS).
+const float* InvE();
+// Smoothing fractions the game already multiplies by the frame delta, f = k*d (linear in
+// d, so it drifts above 60 FPS), made exact: f -> 1-(1-min(f/e, 1))^e, identical at e = 1.
+// The first `prefix` bytes of the site compute f in xmm<reg> (< 8); the rest of the site
+// (if any) is the original min with 1.0.
+bool ExactFraction(const SigSite& s, size_t prefix, uint8_t reg);
+// Same for the fraction argument xmm2 of a `call rel32`. With `k`, xmm2 holds only the
+// delta d and the callee multiplies by k itself: xmm2 -> (1-(1-min(k*d/e, 1))^e) / k,
+// and the original call runs unchanged at e = 1.
+bool ExactArgCall(const SigSite& s, float k = 0.0f);

@@ -9,6 +9,7 @@ import sys
 import capstone
 
 md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64)
+md.detail = True
 bad = 0
 total = 0
 for line in open(sys.argv[1]):
@@ -27,5 +28,19 @@ for line in open(sys.argv[1]):
         bad += 1
         print('BAD %-40s decoded %d/%d bytes, last: %s %s' % (
             p['name'], decoded, len(code), last.mnemonic if last else '-', last.op_str if last else ''))
+        continue
+    # Branches inside a cave: conditional and short jumps must land on an instruction
+    # boundary of the same cave (only rel32 jmp/call may leave it, back to game code).
+    starts = {i.address for i in ins} | {len(code)}
+    for i in ins:
+        if not (i.group(capstone.CS_GRP_JUMP) and i.operands and i.operands[0].type == capstone.x86.X86_OP_IMM):
+            continue
+        target = i.operands[0].imm
+        leaves = i.mnemonic == 'jmp' and i.size == 5
+        if not leaves and target not in starts:
+            bad += 1
+            print('BAD %-40s %s %s at +%d lands outside the cave or mid-instruction' % (
+                p['name'], i.mnemonic, i.op_str, i.address))
+            break
 print('%d caves checked, %d bad' % (total, bad))
 sys.exit(1 if bad else 0)

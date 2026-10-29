@@ -94,6 +94,17 @@ static void BulletAndEnemyTests() {
     RunSite(line->site, line->len, obj, 0);
     CHECK(fabs(out[0] - (3.0f + e)) < 1e-6f, "guided-line frame counter at 144 fps: %.5f", out[0]);
     CHECK(fabs(*lerp01 - (1 - powf(0.9f, e))) < 1e-6f, "enemy movement smoothing at 144 fps: %.5f", *lerp01);
+    // Shared enemy turn helper: fraction = delta * rate, now exact. One second at 144 fps
+    // must leave the same remaining angle as 60 frames at 60 fps (rate 0.2).
+    if (const PatchRecord* turn = FindPatch("EX_TurnFE650_Frac")) {
+        (void)turn;
+        float remain60 = powf(1.0f - 0.2f, 60.0f), remain = 1.0f;
+        for (int i = 0; i < 144; ++i) remain *= 1.0f - LerpE(fminf(0.2f * e * *InvE(), 1.0f));
+        CHECK(fabs(remain - remain60) < 1e-4f, "exact turn fraction after 1 s at 144 fps: %.6f (60 fps %.6f, linear %.6f)",
+              remain, remain60, powf(1.0f - 0.2f * e, 144.0f));
+    } else {
+        CHECK(false, "exact turn fraction patch present");
+    }
     CHECK(LerpE(1.5f) == 1.5f && PowE(-0.5f) == -0.5f && LerpE(1.0f) == 1.0f,
           "out-of-range factors pass through instead of NaN (LerpE(1.5) %.3f, PowE(-0.5) %.3f)", LerpE(1.5f), PowE(-0.5f));
 

@@ -74,6 +74,14 @@ public:
         return i32((int32_t)((const uint8_t*)target - (p_ + 4 + trailing)));
     }
     Asm& jmp(const void* target) { raw({0xE9}); return rip(target); }
+    // `j<cc> rel32` (cc 0x4 = e, 0x5 = ne, ...) to a label bound later with bind().
+    uint8_t* jccForward(uint8_t cc) {
+        raw({0x0F, (uint8_t)(0x80 | cc)});
+        uint8_t* rel = p_;
+        i32(0);
+        return rel;
+    }
+    void bind(uint8_t* rel) { *(int32_t*)rel = (int32_t)(p_ - (rel + 4)); }
     Asm& call(const void* target) { raw({0xE8}); return rip(target); }
     uint8_t* cur() const { return p_; }
     size_t size() const { return (size_t)(p_ - start_); }

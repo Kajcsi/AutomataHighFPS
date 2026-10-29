@@ -306,5 +306,6 @@ void InstallSubsystemPatches() {
     FixBulletsAndEnemies();
     FixWorld();
     FixCamera();
+    FixExactSmoothing();
     if (g_cfg.fixCloth) FixCloth();
 }

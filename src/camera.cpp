@@ -83,12 +83,6 @@ static void FixCameraBlend() {
     });
 }
 
-static const float* Constant(float v) {
-    float* p = (float*)g_arena.Alloc(4, 4);
-    if (p) *p = v;
-    return p;
-}
-
 // `movss xR, [state]; addss xR, [velocity]` (8-byte instructions at `movAt`/`addAt`, R < 8):
 // state + velocity applied once per frame -> state + velocity * e.
 static void EmitScaledAdd(Asm& a, const uint8_t* site, int movAt, int addAt, uint8_t reg) {
@@ -100,19 +94,6 @@ static void EmitScaledAdd(Asm& a, const uint8_t* site, int movAt, int addAt, uin
 static void ScaledAdd(const SigSite& s, uint8_t reg) {
     PatchSite(s, [&](Asm& a, uint8_t* site) {
         EmitScaledAdd(a, site, 0, 8, reg);
-        a.jmp(site + s.len);
-    });
-}
-
-// The original fraction f = delta * k (computed by `prefix` bytes of the site, in xmm<reg>)
-// -> 1-(1-min(f/e, 1))^e, then the rest of the site.
-static void ExactFraction(const SigSite& s, size_t prefix, uint8_t reg, const float* inv) {
-    PatchSite(s, [&](Asm& a, uint8_t* site) {
-        a.copy(site, prefix);
-        EmitSseRip(a, kMulss, reg, inv);
-        if (prefix == s.len) EmitSseRip(a, kMinss, reg, NearOne());
-        else a.copy(site + prefix, s.len - prefix);  // the original minss with 1.0
-        EmitFloatCall(a, &LerpE, reg, reg);
         a.jmp(site + s.len);
     });
 }
@@ -167,7 +148,7 @@ static void FixEventCamera(const float* inv) {
         a.raw({0xF3, 0x0F, 0x59, 0xC7});                            // mulss xmm0, xmm7 (len - dist)
         a.jmp(site + 12);
     });
-    ExactFraction(kCamE_CAM_590_APPROACH_FRAC_EXACT, 5, 7, inv);   // flags of the cmp before stay live
+    ExactFraction(kCamE_CAM_590_APPROACH_FRAC_EXACT, 5, 7);   // flags of the cmp before stay live
 }
 
 // `mov dword [rip+disp32], imm32` to `target`.
@@ -281,7 +262,7 @@ void FixCamera() {
     RewriteSite(kCam_CAM_M18_3C0_APPROACH, {{0, 4, kMovss, 3, step05deg}, {4, 4, kMovss, 2, lerp01}});
     RewriteSite(kCam_CAM_M18_3C4_APPROACH, {{0, 4, kMovss, 3, step05deg}, {12, 4, kMovss, 2, lerp01}});
     // Apply: xmm9 (0.1) is now the scaled smoothing factor; its clamp compare keeps 0.1.
-    RewriteSite(kCam_CAM_APPLY_RATE_CMP, {{0, 4, kComiss, 6, Constant(0.1f)}});
+    RewriteSite(kCam_CAM_APPLY_RATE_CMP, {{0, 4, kComiss, 6, ConstFloat(0.1f)}});
 
     // Roll: xmm7 *= [rdi+0x698] * 0.1 (a per-frame fraction) -> LerpE of it.
     PatchSite(kCam_CAM_ROLL_EXT_LERP, [](Asm& a, uint8_t* site) {
@@ -325,11 +306,11 @@ void FixCamera() {
     }
 
     // Fractions already multiplied by the frame delta: exact 60 Hz equivalent.
-    const float* inv = NewScaled("1/e", Scale::Inv, 1.0f);
-    ExactFraction(kCam_CAM_TRK_YAW_FRAC_EXACT, 5, 0, inv);
-    ExactFraction(kCam_CAM_TRK_PITCH_FRAC_EXACT, 5, 0, inv);
-    ExactFraction(kCam_CAM_APPLY_FRAC_EXACT, 8, 6, inv);
-    ExactFraction(kCam_HELPER_66ED60_EXACT, 5, 0, inv);
+    const float* inv = InvE();
+    ExactFraction(kCam_CAM_TRK_YAW_FRAC_EXACT, 5, 0);
+    ExactFraction(kCam_CAM_TRK_PITCH_FRAC_EXACT, 5, 0);
+    ExactFraction(kCam_CAM_APPLY_FRAC_EXACT, 8, 6);
+    ExactFraction(kCam_HELPER_66ED60_EXACT, 5, 0);
 
     FixCameraBlend();
     FixEventCamera(inv);
