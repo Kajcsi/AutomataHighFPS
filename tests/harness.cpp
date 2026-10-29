@@ -6,6 +6,9 @@
 #include "../src/game.h"
 #include "../src/timing.h"
 #include "../src/subsystems.h"
+#include "../src/display.h"
+#include <d3d11.h>
+#include <dxgi1_2.h>
 #include <cstdio>
 #include <cmath>
 
@@ -148,6 +151,76 @@ static void Functional(uint8_t* img) {
     CHECK(counter >= 958 && counter <= 961, "TimeCountAction after 1 s at 2000 fps = %d ms (vanilla 0: timer never fires)", counter);
 }
 
+static void* ImportSlot(uint8_t* img, const char* dll, const char* func) {
+    auto* nt = (IMAGE_NT_HEADERS64*)(img + ((IMAGE_DOS_HEADER*)img)->e_lfanew);
+    auto& dir = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    for (auto* imp = (IMAGE_IMPORT_DESCRIPTOR*)(img + dir.VirtualAddress); imp->Name; ++imp) {
+        if (_stricmp((const char*)(img + imp->Name), dll)) continue;
+        auto* names = (IMAGE_THUNK_DATA64*)(img + imp->OriginalFirstThunk);
+        auto* iat = (IMAGE_THUNK_DATA64*)(img + imp->FirstThunk);
+        for (; names->u1.AddressOfData; ++names, ++iat)
+            if (!IMAGE_SNAP_BY_ORDINAL64(names->u1.Ordinal) &&
+                !strcmp((const char*)((IMAGE_IMPORT_BY_NAME*)(img + names->u1.AddressOfData))->Name, func))
+                return (void*)iat->u1.Function;
+    }
+    return nullptr;
+}
+
+static bool InHarness(void* p) {
+    auto* base = (uint8_t*)GetModuleHandleW(nullptr);
+    auto* nt = (IMAGE_NT_HEADERS64*)(base + ((IMAGE_DOS_HEADER*)base)->e_lfanew);
+    return (uint8_t*)p >= base && (uint8_t*)p < base + nt->OptionalHeader.SizeOfImage;
+}
+
+// The game creates its swap chain like this: CreateDXGIFactory (imported), then
+// IDXGIFactory2::CreateSwapChainForHwnd on a D3D11 device.
+static void DisplayHooks(uint8_t* img) {
+    InstallDisplayHooks(img);
+    using CreateFactory_t = HRESULT(WINAPI*)(REFIID, void**);
+    using CreateDevice_t = decltype(&D3D11CreateDevice);
+    auto createFactory = (CreateFactory_t)ImportSlot(img, "dxgi.dll", "CreateDXGIFactory");
+    auto createDevice = (CreateDevice_t)ImportSlot(img, "d3d11.dll", "D3D11CreateDevice");
+    CHECK(createFactory && InHarness((void*)createFactory), "CreateDXGIFactory import hooked");
+    if (!createFactory || !createDevice) return;
+    IDXGIFactory* factory = nullptr;
+    IDXGIFactory2* factory2 = nullptr;
+    ID3D11Device* device = nullptr;
+    if (FAILED(createFactory(__uuidof(IDXGIFactory), (void**)&factory)) ||
+        FAILED(factory->QueryInterface(__uuidof(IDXGIFactory2), (void**)&factory2)) ||
+        FAILED(createDevice(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, 0, nullptr, 0, D3D11_SDK_VERSION, &device, nullptr, nullptr))) {
+        printf("SKIP display hooks: no DXGI 1.2 / WARP device\n");
+        return;
+    }
+    CHECK(InHarness((*(void***)factory2)[15]), "CreateSwapChainForHwnd hooked");
+    HWND wnd = CreateWindowExW(0, L"STATIC", L"", WS_POPUP, 0, 0, 64, 64, nullptr, nullptr, nullptr, nullptr);
+    DXGI_SWAP_CHAIN_DESC1 desc{};
+    desc.Width = 64;
+    desc.Height = 64;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    desc.BufferCount = 2;
+    desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC fs{};
+    fs.RefreshRate = {60, 1};
+    fs.Windowed = TRUE;
+    IDXGISwapChain1* sc = nullptr;
+    HRESULT hr = factory2->CreateSwapChainForHwnd(device, wnd, &desc, &fs, nullptr, &sc);
+    CHECK(SUCCEEDED(hr) && sc, "swap chain created through the hook (hr 0x%08lx)", hr);
+    if (sc) {
+        CHECK(InHarness((*(void***)sc)[14]), "ResizeTarget hooked on the new swap chain");
+        DXGI_MODE_DESC mode{};
+        mode.Width = 64;
+        mode.Height = 64;
+        CHECK(SUCCEEDED(sc->ResizeTarget(&mode)), "windowed ResizeTarget passes through");
+        sc->Release();
+    }
+    DestroyWindow(wnd);
+    device->Release();
+    factory2->Release();
+    factory->Release();
+}
+
 // Writes one JSON line per patch: image-relative site, original and patched bytes, cave bytes.
 static void Dump(const wchar_t* path, uint8_t* img, const uint8_t* pristine) {
     FILE* f = _wfopen(path, L"w");
@@ -191,6 +264,7 @@ int wmain(int argc, wchar_t** argv) {
     if (argc > 3) {
         Functional(img);
         RunSubsystemTests(img, &g_failures);
+        DisplayHooks(img);
     }
     Dump(argv[2], img, pristine);
     printf("%d failure(s)\n", g_failures);
