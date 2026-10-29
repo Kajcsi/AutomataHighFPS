@@ -32,6 +32,7 @@ The DLL loads as `dinput8.dll`, so it doesn't conflict with ReShade or Special K
 | `FixFrameCounters` | `1` | Per-frame counters (hit-stop, transition cooldowns, …) tick at 60 Hz. |
 | `FixMsTimers` | `1` | Quest/script millisecond timers stay accurate at any frame rate. |
 | `FixSubsystems` | `1` | Hacking, menus, flight unit, fishing and movement fixes. |
+| `FixCloth` | `1` | Cloth and hair physics in 60 Hz steps with smooth in-between frames. |
 | `MenuFPS` | `0` | Optional frame rate cap while a menu is open (`0` = no cap). |
 | `UnlimitedLoading` | `1` | Removes the frame limit on loading screens, which shortens loads. |
 | `ForceMaxRefreshRate` | `1` | Exclusive fullscreen uses the monitor's highest refresh rate instead of 60 Hz. |
@@ -86,6 +87,7 @@ About 270 patches, located by signature in both executables:
 | Hacking (and Ending E credits) | Ship and enemy speed smoothing and movement, respawn waits, spins, wave patterns, gun sweeps, hit cooldowns, items, bombs, knock-back | Scaled / 60 Hz ticks (no frame cap) |
 | Fishing | Bobber settle | Scaled |
 | 9S hack gauge | Decay per frame | Scaled |
+| Cloth and hair | The solver steps once per frame with per-step damping and constraint passes, so cloth turned stiffer and slower | Simulated in real 60 Hz steps; frames in between show a partial-step preview that is rolled back before the next step |
 
 ## Known limitations
 
@@ -96,8 +98,6 @@ These are still frame-dependent:
 - **Regular bullets and enemy AI**: the shared bullet code's decay, wobble and
   homing for non-shooter bullets, and enemy AI beyond the systems listed above,
   have not been fully swept.
-- **Cloth and hair physics** step once per frame, so they look slightly stiffer
-  at high frame rates. This is cosmetic only.
 
 If something misbehaves, press F11 to drop to 60 FPS while you get past it, and
 please report where it happened.
