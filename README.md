@@ -63,7 +63,10 @@ The mod:
   - **k^e** for per-frame decay (`v *= k`);
   - **1−(1−k)^e** for per-frame smoothing (`v += (target − v) · k`),
     including smoothing factors stored per object, rescaled at runtime;
-  - an exact gravity step that reproduces the 60 FPS jump/fall/glide arcs.
+  - an exact gravity step that reproduces the 60 FPS jump/fall/glide arcs;
+  - exact pairs for a decay and the movement it drives (knock-back, drift,
+    hover pulls, bullet speed and spin), so both the timing and the distance
+    travelled match 60 FPS.
 
 At 60 FPS or below every replacement value equals the original constant, and
 with a 60 FPS limit the time step is clamped exactly as in vanilla, so the mod
@@ -71,7 +74,7 @@ changes nothing there. All values are recomputed once per frame.
 
 ## Fixes
 
-About 890 patches, located by signature in both executables:
+About 1,180 patches, located by signature in both executables:
 
 | Area | What was frame-dependent | Fix |
 |---|---|---|
@@ -81,18 +84,18 @@ About 890 patches, located by signature in both executables:
 | Events and dialogue | Cutscene fade and caption lead-ins, caption auto-close, Yes/No input lock, forced-walk, fast-travel hold, elevator, timed HUD gauge (fixed 1/60 s per frame); NPC talk release; bunker waits; object-load wait; placed-item countdown; transition cooldowns | Scaled per frame / 60 Hz ticks |
 | Slow motion | Finisher slow-mo, BGM slow and delayed slow-mo requests counted in frames | 60 Hz ticks |
 | Menus and UI | Menu key-repeat (pad, keyboard, mouse), HUD fades, option-text marquee, rumble length | 60 Hz ticks / scaled smoothing |
-| Player movement | Glide spin-kick drift, air control, attack damping and plunge, jump/attack and button press buffers, jump and glide arcs, vertical free-move mode, scripted lift, slope landing check, A2 evade turn, animation-blend and animation-speed smoothing, scripted states (dive, flight-unit attach, push, hover sway, fall return, stage laser), beam length, assorted per-frame player counters | Scaled / exact gravity / 60 Hz ticks |
-| Pod | Follow smoothing, orbit angle, follow-factor ramp and target smoothing, bone and arm aim, sonar ping interval and smoothing, scripted pod timers, bob ramp, program spins and beam growth, Pod B laser burst, keep-alive and beam lengths, skill model lifetimes | Scaled / 60 Hz ticks |
-| Enemies | Common movement smoothing (yaw, angle, speed), strafing, keep-distance and approach steps, drift, navmesh pull-back, hit pull-in, RunState steps, hacked-robot stick decay, fall smoothing, gravity, boss part spins and smoothing, hit windows, attack cooldowns, waits, slow-motion override and time-scale request counters, hacked-robot attack damping | Scaled / exact gravity / 60 Hz ticks |
-| Bullets | Arc-shot gravity and speed-up, spin, homing turn rate and fraction, speed decay, wobble, guided-line counter and snap, gravity wells, ring bombs, beams, and bullet types that moved a fixed distance per frame | Scaled |
-| Camera | Every third-person camera mode's follow-factor ramps, angle, distance and offset smoothing, approach fractions and step limits, angular impulses, target lag, aim offsets, recentre, snap and skip-update frame counters, the mode-transition blend, event and scripted cameras (path camera, moveOffset, side-view path mode), camera shake (integrator steps, random sign changes on 60 Hz ticks); fractions the camera already scaled by the frame time use the exact 60 FPS equivalent | Scaled / 60 Hz ticks |
+| Player movement | Glide spin-kick drift, air control, attack damping and plunge, jump/attack and button press buffers, jump and glide arcs, vertical free-move mode, scripted lift, slope landing check, A2 evade turn, animation-blend and animation-speed smoothing, scripted states (dive, flight-unit attach, push, hover sway, fall return, stage laser), beam length, 2D-section drift, knock-back slide, carried objects, assorted per-frame player counters | Scaled / exact gravity / 60 Hz ticks |
+| Pod | Follow smoothing, orbit angle, follow-factor ramp and target smoothing, bone and arm aim, sonar ping interval and smoothing, scripted pod timers, bob ramp, program spins and beam growth, Pod B laser burst and hit rate, keep-alive and beam lengths, skill model lifetimes | Scaled / 60 Hz ticks |
+| Enemies | Common movement smoothing (yaw, angle, speed), strafing, keep-distance and approach steps, drift, navmesh pull-back, hit pull-in, RunState steps, hacked-robot stick decay, fall smoothing, gravity, boss part spins and smoothing, hit windows, attack cooldowns, waits, slow-motion override and time-scale request counters, hacked-robot attack damping; across every enemy, animal and mount class: hover and flying pulls (their top speed scaled with the frame rate), speed decays and slides, turn-rate and speed ramps, oscillators, path progress, beam growth and sweeps, part gravity and orbits, HP regeneration, camera-proximity fades, state and contact frame counters | Scaled / exact gravity and decay pairs / 60 Hz ticks |
+| Bullets | Arc-shot gravity (applied before the move, so arcs are integrated exactly) and speed-up, falling move modes, spin and its decay, homing and frame-follow turn rate and fraction in every move mode, speed decay, wobble, guided-line counter and snap, gravity wells, ring bombs, beams, attached-part scale, and bullet types that moved a fixed distance per frame | Scaled / exact arcs and decay pairs |
+| Camera | Every third-person camera mode's follow-factor ramps, angle, distance and offset smoothing, approach fractions and step limits, angular impulses (fade and swing), gains combined with the follow speed or the transition blend, target lag, aim offsets, recentre, snap and skip-update frame counters, the mode-transition blend, event and scripted cameras (path camera, moveOffset, side-view path mode), camera shake (integrator steps, random sign changes on 60 Hz ticks); fractions the camera already scaled by the frame time use the exact 60 FPS equivalent | Scaled / 60 Hz ticks |
 | NPCs and companions | 9S/A2 yaw, animation blend, step and follow smoothing, scripted entrances, anchor and navmesh pulls, creature NPC turning, leaning, speed ramps and path movement, foot IK, the 9S thrown weapon, fish | Scaled |
-| World | Map gimmick timers (doors, elevators, steam pipes), item and corpse lifetimes, item magnet, drop timers, environment and light transitions, phase-flow and manager timers, scrolling sections, see-through fades, ambient audio smoothing and ray sampling, combat hit and phase windows, particle emit counters | Scaled / 60 Hz ticks |
+| World | Map gimmick timers (doors, elevators, steam pipes), item and corpse lifetimes, item magnet, drop timers, environment and light transitions, phase-flow and manager timers, scrolling sections, see-through fades, ambient audio smoothing and ray sampling, combat hit and phase windows, particle emit counters, effect collision intervals | Scaled / 60 Hz ticks |
 | HUD and menus | Boss HP gauge, operating-ratio and pollution gauges, popups and slides, core-menu waits, weapon list and item-shortcut counters | Scaled / 60 Hz ticks |
 | Flight unit | Rail movement and smoothing, ship movement, tilt and turn rates, behind-view battles, curve-following enemies, wingmen, shooter bullets and homing, lasers, scroll speed changes | Scaled (no frame cap) |
 | Hacking (and Ending E credits) | Ship and enemy speed smoothing and movement, respawn waits, spins, wave patterns, gun sweeps, hit cooldowns, items, bombs, knock-back | Scaled / 60 Hz ticks (no frame cap) |
 | Animation inputs | Playback runs on the frame time, but some states smoothed or ramped the playback speed, blend parameters and root-motion scale once per update (player run and turn states, an escort blend ramp, the Baa000 mount speed, shared enemy turn states) | Scaled |
-| Fishing | Bobber settle | Scaled |
+| Fishing | Bobber settle and jitter | Scaled / 60 Hz ticks |
 | 9S hack gauge | Decay per frame | Scaled |
 | Frame-time-scaled smoothing | Turn and approach fractions the game multiplies by the frame time (shared enemy and NPC turn helpers, turn-to-point, pod follow and orbit, animals, player flight and states, camera modes) scale only linearly, so they still settled faster above 60 FPS | Exact 60 FPS equivalent, identical at 60 FPS, slow motion kept |
 | Cloth and hair | The solver steps once per frame with per-step damping and constraint passes, so cloth turned stiffer and slower | Simulated in real 60 Hz steps; frames in between show a partial-step preview that is rolled back before the next step |
