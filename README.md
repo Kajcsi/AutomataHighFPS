@@ -87,9 +87,9 @@ About 270 patches, located by signature in both executables:
 | Fishing | Bobber settle | Scaled |
 | 9S hack gauge | Decay per frame | Scaled |
 
-## Not done yet
+## Known limitations
 
-These are still frame-dependent and are being worked on:
+These are still frame-dependent:
 
 - **Camera**: the third-person camera modes ramp and smooth some values per
   frame, so the camera settles slightly faster at high frame rates.
