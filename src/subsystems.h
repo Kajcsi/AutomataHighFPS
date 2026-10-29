@@ -9,6 +9,7 @@ void FixFlightUnit();
 void FixHacking();
 void FixMovementExtra();
 void FixCloth();
+void FixBulletsAndEnemies();
 // Replaces the original Cloth::Step the hook calls (test harness only).
 void SetClothStepForTest(void (*step)(unsigned char* cloth, float dt, int flag));
 

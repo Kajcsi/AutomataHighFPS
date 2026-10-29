@@ -61,6 +61,12 @@ public:
         p_ += 4;
         return *this;
     }
+    // Copies position-independent original instructions.
+    Asm& copy(const uint8_t* src, size_t n) {
+        memcpy(p_, src, n);
+        p_ += n;
+        return *this;
+    }
     // disp32 of a RIP-relative operand; `trailing` = bytes of the instruction after the disp (immediates).
     Asm& rip(const void* target, int trailing = 0) {
         return i32((int32_t)((const uint8_t*)target - (p_ + 4 + trailing)));

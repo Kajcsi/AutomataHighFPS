@@ -38,6 +38,86 @@ static void SimulateFrame(double fps) {
     OnUpdateTimeStep(obj, 1, 1.0f);
 }
 
+// Runs the patched code from `site` up to `site + len` with rbx = rsi = rdi = obj and
+// eax = eaxIn in a function-like frame (rsp 16-byte aligned, 0x100 bytes of locals),
+// then returns eax. xmm0 and xmm1 are stored to obj+0x1F00 / obj+0x1F04.
+static int RunSite(uint8_t* site, size_t len, uint8_t* obj, int eaxIn) {
+    static uint8_t* thunk;
+    static uint8_t* back;
+    if (!thunk) {
+        thunk = g_arena.Alloc(128);
+        Asm a(thunk);
+        a.raw({0x53, 0x56, 0x57, 0x55});                          // push rbx, rsi, rdi, rbp
+        a.raw({0x48, 0x81, 0xEC}).i32(0x108);                     // sub rsp, 0x108
+        a.raw({0x48, 0x89, 0xD3, 0x48, 0x89, 0xD6, 0x48, 0x89, 0xD7});  // mov rbx/rsi/rdi, rdx
+        a.raw({0x44, 0x89, 0xC0});                                // mov eax, r8d
+        a.raw({0xFF, 0xE1});                                      // jmp rcx
+        back = a.cur();
+        a.raw({0xF3, 0x0F, 0x11, 0x83}).i32(0x1F00);              // movss [rbx+0x1F00], xmm0
+        a.raw({0xF3, 0x0F, 0x11, 0x8B}).i32(0x1F04);              // movss [rbx+0x1F04], xmm1
+        a.raw({0x48, 0x81, 0xC4}).i32(0x108);                     // add rsp, 0x108
+        a.raw({0x5D, 0x5F, 0x5E, 0x5B, 0xC3});                    // pop rbp, rdi, rsi, rbx; ret
+    }
+    uint8_t saved[5], jmp[5] = {0xE9};
+    memcpy(saved, site + len, 5);
+    *(int32_t*)(jmp + 1) = (int32_t)(back - (site + len + 5));
+    WriteProtected(site + len, jmp, 5);
+    int r = ((int (*)(uint8_t*, uint8_t*, int))thunk)(site, obj, eaxIn);
+    WriteProtected(site + len, saved, 5);
+    return r;
+}
+
+static void BulletAndEnemyTests() {
+    alignas(16) static uint8_t obj[0x6000];  // fields up to +0x5F34
+    float* out = (float*)(obj + 0x1F00);
+    const PatchRecord* arc = FindPatch("BLT_ArcGravity");
+    const PatchRecord* homing = FindPatch("BLT_HomingTurn");
+    const PatchRecord* line = FindPatch("BLT_LineCounter");
+    const PatchRecord* ctr = FindPatch("EM_TimeOverrideCtr");
+    const float* lerp01 = ScaledConstant("enemy movement smoothing 0.1");
+    CHECK(arc && homing && line && ctr && lerp01, "bullet and enemy patches present");
+    if (!arc || !homing || !line || !ctr || !lerp01) return;
+
+    SimulateFrame(144);
+    float e = S->stepUpToOne;
+    *(float*)(obj + 0xE04) = 1.0f;
+    *(float*)(obj + 0xE98) = 0.05f;
+    RunSite(arc->site, arc->len, obj, 0);
+    CHECK(fabs(*(float*)(obj + 0xE04) - (1.0f - 0.05f * e)) < 1e-6f, "arc shot gravity at 144 fps: vel.y %.5f (e=%.4f)",
+          *(float*)(obj + 0xE04), e);
+    *(float*)(obj + 0xE4C) = 0.2f;
+    *(float*)(obj + 0xE48) = 0.1f;
+    RunSite(homing->site, homing->len, obj, 0);
+    CHECK(fabs(out[0] - 0.2f * e) < 1e-6f && fabs(out[1] - (1 - powf(0.9f, e))) < 1e-6f,
+          "homing turn at 144 fps: max %.5f, fraction %.5f", out[0], out[1]);
+    *(float*)(obj + 0x1530) = 3.0f;
+    RunSite(line->site, line->len, obj, 0);
+    CHECK(fabs(out[0] - (3.0f + e)) < 1e-6f, "guided-line frame counter at 144 fps: %.5f", out[0]);
+    CHECK(fabs(*lerp01 - (1 - powf(0.9f, e))) < 1e-6f, "enemy movement smoothing at 144 fps: %.5f", *lerp01);
+
+    S->ticks60 = 0;
+    int left = RunSite(ctr->site, ctr->len, obj, 10);
+    CHECK(left == 10 && *(int*)(obj + 0x5F34) == 10 && *(int*)(obj + 0x5F30) == 1,
+          "enemy 10-frame counter holds on a frame without a 60 Hz tick (%d)", left);
+    S->ticks60 = 1;
+    left = RunSite(ctr->site, ctr->len, obj, 10);
+    CHECK(left == 9 && *(int*)(obj + 0x5F34) == 9, "enemy 10-frame counter counts 60 Hz ticks (%d)", left);
+
+    int savedTarget = g_cfg.targetFps;
+    g_cfg.targetFps = 60;
+    SimulateFrame(61);
+    SimulateFrame(61);
+    g_cfg.targetFps = savedTarget;
+    *(float*)(obj + 0xE04) = 1.0f;
+    RunSite(arc->site, arc->len, obj, 0);
+    float vy = *(float*)(obj + 0xE04);
+    RunSite(homing->site, homing->len, obj, 0);
+    CHECK(vy == 0.95f && out[0] == 0.2f && out[1] == 0.1f && *lerp01 == 0.1f,
+          "bullets and enemies unchanged at 60 fps (vel.y %.6f, max %.6f, fraction %.6f, smoothing %.6f)", vy, out[0],
+          out[1], *lerp01);
+    SimulateFrame(144);
+}
+
 void RunSubsystemTests(uint8_t* img, int* failures) {
     (void)img;
     g_fail = failures;
@@ -227,4 +307,5 @@ void RunSubsystemTests(uint8_t* img, int* failures) {
         CHECK(false, "rumble patch present");
     }
     S->ticks60 = 1;
+    BulletAndEnemyTests();
 }

@@ -13,5 +13,5 @@ cd /d "%~dp0"
 if not exist build mkdir build
 cl /nologo /Od /Zi /MT /EHsc /std:c++17 /W3 /GS- /Fobuild\ /Fdbuild\ ^
     harness.cpp subsystem_tests.cpp ..\src\log.cpp ..\src\config.cpp ..\src\memory.cpp ..\src\game.cpp ^
-    ..\src\timing.cpp ..\src\display.cpp ..\src\subsystems.cpp ..\src\patchkit.cpp ..\src\flight.cpp ..\src\hacking.cpp ..\src\movement.cpp ..\src\cloth.cpp ^
-    /link /OUT:build\harness.exe /DYNAMICBASE /HIGHENTROPYVA user32.lib || exit /b 1
+    ..\src\timing.cpp ..\src\display.cpp ..\src\subsystems.cpp ..\src\patchkit.cpp ..\src\flight.cpp ..\src\hacking.cpp ..\src\movement.cpp ..\src\cloth.cpp ..\src\enemies.cpp ^
+    /link /OUT:build\harness.exe /MAP:build\harness.map /DYNAMICBASE /HIGHENTROPYVA user32.lib || exit /b 1

@@ -245,6 +245,14 @@ static void Dump(const wchar_t* path, uint8_t* img, const uint8_t* pristine) {
 
 int wmain(int argc, wchar_t** argv) {
     if (argc < 3) return 2;
+    setvbuf(stdout, nullptr, _IONBF, 0);  // keep output up to a crash
+    SetUnhandledExceptionFilter([](EXCEPTION_POINTERS* ep) -> LONG {
+        auto* er = ep->ExceptionRecord;
+        printf("CRASH 0x%08lX at harness+0x%llx (access %p)\n", er->ExceptionCode,
+               (unsigned long long)((uint8_t*)er->ExceptionAddress - (uint8_t*)GetModuleHandleW(nullptr)),
+               er->NumberParameters > 1 ? (void*)er->ExceptionInformation[1] : nullptr);
+        return EXCEPTION_EXECUTE_HANDLER;
+    });
     LogOpen(L"harness.log");
     uint8_t* img = (uint8_t*)LoadLibraryExW(argv[1], nullptr, DONT_RESOLVE_DLL_REFERENCES);
     if (!img) {
