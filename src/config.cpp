@@ -18,7 +18,7 @@ static const char kDefaultIni[] =
     "FixFrameCounters=1\r\n"
     "; Millisecond quest timers keep their sub-millisecond remainders.\r\n"
     "FixMsTimers=1\r\n"
-    "; Hacking, menus, flight unit, fishing and movement fixes.\r\n"
+    "; Game system fixes: movement, enemies, bullets, camera, NPCs, world, menus, flight unit, hacking.\r\n"
     "FixSubsystems=1\r\n"
     "; Cloth and hair physics step at 60 Hz with smooth in-between frames.\r\n"
     "FixCloth=1\r\n"

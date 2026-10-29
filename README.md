@@ -31,7 +31,7 @@ The DLL loads as `dinput8.dll`, so it doesn't conflict with ReShade or Special K
 | `ToggleCapKey` | `0x7A` (F11) | Toggles a temporary 60 FPS cap. A beep confirms the toggle. |
 | `FixFrameCounters` | `1` | Per-frame counters (hit-stop, transition cooldowns, …) tick at 60 Hz. |
 | `FixMsTimers` | `1` | Quest/script millisecond timers stay accurate at any frame rate. |
-| `FixSubsystems` | `1` | Hacking, menus, flight unit, fishing and movement fixes. |
+| `FixSubsystems` | `1` | Fixes for individual game systems: movement, enemies, bullets, camera, NPCs, world objects, menus, flight unit, hacking, fishing. |
 | `FixCloth` | `1` | Cloth and hair physics in 60 Hz steps with smooth in-between frames. |
 | `MenuFPS` | `0` | Optional frame rate cap while a menu is open (`0` = no cap). |
 | `UnlimitedLoading` | `1` | Removes the frame limit on loading screens, which shortens loads. |
@@ -70,7 +70,7 @@ changes nothing there. All values are recomputed once per frame.
 
 ## Fixes
 
-About 270 patches, located by signature in both executables:
+About 680 patches, located by signature in both executables:
 
 | Area | What was frame-dependent | Fix |
 |---|---|---|
@@ -80,24 +80,19 @@ About 270 patches, located by signature in both executables:
 | Events and dialogue | Cutscene fade and caption lead-ins, caption auto-close, Yes/No input lock, forced-walk, fast-travel hold, elevator, timed HUD gauge (fixed 1/60 s per frame); NPC talk release; bunker waits; object-load wait; placed-item countdown; transition cooldowns | Scaled per frame / 60 Hz ticks |
 | Slow motion | Finisher slow-mo, BGM slow and delayed slow-mo requests counted in frames | 60 Hz ticks |
 | Menus and UI | Menu key-repeat (pad, keyboard, mouse), HUD fades, option-text marquee, rumble length | 60 Hz ticks / scaled smoothing |
-| Player movement | Glide spin-kick drift, air control, attack damping and plunge, jump/attack press buffers, jump and glide arcs, vertical free-move mode, scripted lift, slope landing check, A2 evade turn, assorted per-frame player counters | Scaled / exact gravity / 60 Hz ticks |
+| Player movement | Glide spin-kick drift, air control, attack damping and plunge, jump/attack press buffers, jump and glide arcs, vertical free-move mode, scripted lift, slope landing check, A2 evade turn, animation-blend and animation-speed smoothing, scripted states (dive, flight-unit attach, push), beam length, assorted per-frame player counters | Scaled / exact gravity / 60 Hz ticks |
 | Pod | Follow smoothing (57 sites), sonar ping interval, scripted pod timers, bob ramp | Scaled / 60 Hz ticks |
-| Enemies | Navmesh pull-back (robots leaving bounds), fall smoothing, gravity, hacked-robot attack damping | Scaled / exact gravity |
+| Enemies | Common movement smoothing (yaw, angle, speed), strafing, keep-distance and approach steps, drift, navmesh pull-back, fall smoothing, gravity, boss part spins and smoothing, hit windows, attack cooldowns, waits, slow-motion override and time-scale request counters, hacked-robot attack damping | Scaled / exact gravity / 60 Hz ticks |
+| Bullets | Arc-shot gravity and speed-up, spin, homing turn rate and fraction, speed decay, wobble, guided-line counter and snap, gravity wells, ring bombs, beams, and bullet types that moved a fixed distance per frame | Scaled |
+| Camera | Every third-person camera mode's follow-factor ramps, angle, distance and offset smoothing, approach fractions and step limits, angular impulses, target lag, aim offsets, recentre and snap frame counters; fractions the camera already scaled by the frame time use the exact 60 FPS equivalent | Scaled / 60 Hz ticks |
+| NPCs and companions | 9S/A2 yaw, animation blend, step and follow smoothing, scripted entrances, creature NPC turning and leaning, foot IK, the 9S thrown weapon, fish | Scaled |
+| World | Map gimmick timers (doors, elevators, steam pipes), item and corpse lifetimes, item magnet, drop timers, environment and light transitions, phase-flow and manager timers, scrolling sections, see-through fades, ambient audio smoothing, particle emit counters | Scaled / 60 Hz ticks |
+| HUD and menus | Boss HP gauge, operating-ratio and pollution gauges, popups and slides, core-menu waits, weapon list and item-shortcut counters | Scaled / 60 Hz ticks |
 | Flight unit | Rail movement and smoothing, ship movement, tilt and turn rates, behind-view battles, curve-following enemies, wingmen, shooter bullets and homing, lasers, scroll speed changes | Scaled (no frame cap) |
 | Hacking (and Ending E credits) | Ship and enemy speed smoothing and movement, respawn waits, spins, wave patterns, gun sweeps, hit cooldowns, items, bombs, knock-back | Scaled / 60 Hz ticks (no frame cap) |
 | Fishing | Bobber settle | Scaled |
 | 9S hack gauge | Decay per frame | Scaled |
 | Cloth and hair | The solver steps once per frame with per-step damping and constraint passes, so cloth turned stiffer and slower | Simulated in real 60 Hz steps; frames in between show a partial-step preview that is rolled back before the next step |
-
-## Known limitations
-
-These are still frame-dependent:
-
-- **Camera**: the third-person camera modes ramp and smooth some values per
-  frame, so the camera settles slightly faster at high frame rates.
-- **Regular bullets and enemy AI**: the shared bullet code's decay, wobble and
-  homing for non-shooter bullets, and enemy AI beyond the systems listed above,
-  have not been fully swept.
 
 If something misbehaves, press F11 to drop to 60 FPS while you get past it, and
 please report where it happened.
