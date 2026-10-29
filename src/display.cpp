@@ -1,6 +1,6 @@
 #include "display.h"
 #include "memory.h"
-#include <dxgi.h>
+#include <dxgi1_2.h>
 
 static HWND g_hwnd;
 static double g_refreshHz = 60.0;
@@ -9,9 +9,12 @@ static ULONGLONG g_lastQuery;
 using CreateDXGIFactory_t = HRESULT(WINAPI*)(REFIID, void**);
 using CreateSwapChain_t = HRESULT(STDMETHODCALLTYPE*)(IDXGIFactory*, IUnknown*, DXGI_SWAP_CHAIN_DESC*, IDXGISwapChain**);
 using ResizeTarget_t = HRESULT(STDMETHODCALLTYPE*)(IDXGISwapChain*, const DXGI_MODE_DESC*);
+using CreateSwapChainForHwnd_t = HRESULT(STDMETHODCALLTYPE*)(IDXGIFactory2*, IUnknown*, HWND, const DXGI_SWAP_CHAIN_DESC1*,
+                                                             const DXGI_SWAP_CHAIN_FULLSCREEN_DESC*, IDXGIOutput*, IDXGISwapChain1**);
 static CreateDXGIFactory_t g_origCreateFactory;
 static CreateSwapChain_t g_origCreateSwapChain;
 static ResizeTarget_t g_origResizeTarget;
+static CreateSwapChainForHwnd_t g_origCreateSwapChainForHwnd;
 
 void* HookImport(uint8_t* image, const char* dll, const char* func, void* replacement) {
     auto* nt = (IMAGE_NT_HEADERS64*)(image + ((IMAGE_DOS_HEADER*)image)->e_lfanew);
@@ -109,10 +112,43 @@ static HRESULT STDMETHODCALLTYPE HookCreateSwapChain(IDXGIFactory* f, IUnknown* 
     return hr;
 }
 
+// The game creates its swap chain through IDXGIFactory2::CreateSwapChainForHwnd.
+static HRESULT STDMETHODCALLTYPE HookCreateSwapChainForHwnd(IDXGIFactory2* f, IUnknown* dev, HWND hwnd,
+                                                            const DXGI_SWAP_CHAIN_DESC1* desc,
+                                                            const DXGI_SWAP_CHAIN_FULLSCREEN_DESC* fs, IDXGIOutput* output,
+                                                            IDXGISwapChain1** out) {
+    g_hwnd = hwnd;
+    g_lastQuery = 0;
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC f2;
+    if (desc && fs) {
+        f2 = *fs;
+        Log("swap chain %ux%u windowed=%d refresh %u/%u", desc->Width, desc->Height, fs->Windowed,
+            fs->RefreshRate.Numerator, fs->RefreshRate.Denominator);
+        if (!fs->Windowed && g_cfg.forceMaxRefresh) {
+            DXGI_MODE_DESC m{};
+            m.Width = desc->Width;
+            m.Height = desc->Height;
+            m.RefreshRate = fs->RefreshRate;
+            PickMaxRefresh(hwnd, m);
+            f2.RefreshRate = m.RefreshRate;
+        }
+        fs = &f2;
+    }
+    HRESULT hr = g_origCreateSwapChainForHwnd(f, dev, hwnd, desc, fs, output, out);
+    if (SUCCEEDED(hr) && out && *out) PatchVtable(*out, 14, (void*)&HookResizeTarget, (void**)&g_origResizeTarget);
+    return hr;
+}
+
 static HRESULT WINAPI HookCreateDXGIFactory(REFIID riid, void** factory) {
     HRESULT hr = g_origCreateFactory(riid, factory);
-    if (SUCCEEDED(hr) && factory && *factory)
+    if (SUCCEEDED(hr) && factory && *factory) {
         PatchVtable(*factory, 10, (void*)&HookCreateSwapChain, (void**)&g_origCreateSwapChain);
+        IDXGIFactory2* f2 = nullptr;
+        if (SUCCEEDED(((IUnknown*)*factory)->QueryInterface(__uuidof(IDXGIFactory2), (void**)&f2)) && f2) {
+            PatchVtable(f2, 15, (void*)&HookCreateSwapChainForHwnd, (void**)&g_origCreateSwapChainForHwnd);
+            f2->Release();
+        }
+    }
     return hr;
 }
 
