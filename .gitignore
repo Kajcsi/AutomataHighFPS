@@ -1,0 +1,14 @@
+# Build output
+build/
+tests/build/
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+
+# Runtime files
+*.log
+
+# Local-only analysis helper (decrypts the game's SteamStub wrapper for static analysis)
+tools/unstub.mjs

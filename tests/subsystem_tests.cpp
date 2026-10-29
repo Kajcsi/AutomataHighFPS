@@ -1,0 +1,177 @@
+// Functional tests for subsystem patches, run by harness.exe in "functional" mode.
+#include "../src/common.h"
+#include "../src/memory.h"
+#include "../src/game.h"
+#include "../src/timing.h"
+#include "../src/patchkit.h"
+#include "../src/subsystems.h"
+#include <cstdio>
+#include <cmath>
+#include <cstring>
+
+static int* g_fail;
+#define CHECK(cond, ...)                         \
+    do {                                         \
+        bool c_ = (cond);                        \
+        printf("%s ", c_ ? "PASS" : "FAIL");     \
+        printf(__VA_ARGS__);                     \
+        printf("\n");                            \
+        if (!c_) ++*g_fail;                      \
+    } while (0)
+
+static const PatchRecord* FindPatch(const char* name) {
+    size_t n;
+    const PatchRecord* r = Patches(&n);
+    for (size_t i = 0; i < n; ++i)
+        if (!strcmp(r[i].name, name)) return &r[i];
+    return nullptr;
+}
+
+// Simulates `frames` frames of `seconds` total at a constant frame time through the per-frame hook.
+static void SimulateFrame(double fps) {
+    alignas(16) static uint8_t obj[0x100];
+    LARGE_INTEGER now, freq;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&now);
+    *(float*)(obj + 0xB8) = 0.06f;
+    *(int64_t*)(obj + 0xA8) = now.QuadPart - (int64_t)(freq.QuadPart / fps);
+    OnUpdateTimeStep(obj, 1, 1.0f);
+}
+
+void RunSubsystemTests(uint8_t* img, int* failures) {
+    (void)img;
+    g_fail = failures;
+
+    // UI fade: one second at 144 fps must reach the same alpha as 60 frames of vanilla.
+    const float* fadeK = ScaledConstant("UI fade (UIAllPurpose)");
+    const float* gauge = ScaledConstant("9S hack gauge decay");
+    const float* airDecay = ScaledConstant("air control decay");
+    const float* landThr = ScaledConstant("landing displacement threshold");
+    CHECK(fadeK && gauge && airDecay && landThr, "scaled constants registered");
+    if (!fadeK || !gauge || !airDecay || !landThr) return;
+    float vanilla = 0, modded = 0;
+    for (int i = 0; i < 60; ++i) vanilla += (1.0f - vanilla) * 0.1f;
+    for (int i = 0; i < 144; ++i) {
+        SimulateFrame(144);
+        modded += (1.0f - modded) * *fadeK;
+    }
+    CHECK(fabs(vanilla - modded) < 0.01f, "UI fade after 1 s: vanilla 60 fps %.4f, mod 144 fps %.4f", vanilla, modded);
+    int savedTarget = g_cfg.targetFps;
+    g_cfg.targetFps = 60;
+    SimulateFrame(61);  // sets the 60 fps limiter target
+    SimulateFrame(61);  // a slightly early frame
+    CHECK(*fadeK == 0.1f && *airDecay == 0.93f && S->step == 1.0f && S->ticks60 == 1,
+          "60 fps limit, early frame: step %.4f, fade %.3f, air decay %.3f, ticks %d (vanilla 1.0, 0.1, 0.93, 1)", S->step,
+          *fadeK, *airDecay, S->ticks60);
+    g_cfg.targetFps = savedTarget;
+    SimulateFrame(144);
+
+    // Per-frame decay and amounts summed over one second equal 60 vanilla frames.
+    float drain = 0, speed = 1.0f;
+    for (int i = 0; i < 144; ++i) {
+        SimulateFrame(144);
+        drain += *gauge;
+        speed *= *airDecay;
+    }
+    CHECK(fabs(drain - 60.0f / 360.0f) < 0.005f, "hack gauge drain per second at 144 fps = %.4f (60 fps: %.4f)", drain, 60.0f / 360);
+    CHECK(fabs(speed - powf(0.93f, 60)) < 0.002f, "air momentum after 1 s at 144 fps = %.4f (60 fps: %.4f)", speed, powf(0.93f, 60));
+    CHECK(fabs(*landThr - 0.0025f * S->step * S->step) < 1e-7f, "landing threshold scales with step^2 (%.6f)", *landThr);
+
+    // Flight unit thunks, run against the game's own vector math.
+    SimulateFrame(144);
+    float e = S->stepUpToOne;
+    if (const PatchRecord* r = FindPatch("R1_AirBezier_disp")) {
+        // vec * scalar: the scalar (xmm2) is scaled by e before the original runs.
+        alignas(16) float out[4] = {}, v[4] = {1, 2, 3, 0};
+        ((void (*)(float*, float*, float))r->cave)(out, v, 2.0f);
+        CHECK(fabs(out[0] - 2 * e) < 1e-5f && fabs(out[2] - 6 * e) < 1e-5f, "rail movement scaled: (%.4f, %.4f, %.4f), e=%.4f",
+              out[0], out[1], out[2], e);
+    } else {
+        CHECK(false, "rail movement patch present");
+    }
+    if (const PatchRecord* r = FindPatch("P1_PlStg_move")) {
+        // vec * rotation: the result vector is scaled by e after the original runs.
+        alignas(16) float out[4] = {}, v[4] = {1, 2, 3, 0};
+        alignas(16) float m[12] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
+        ((void (*)(float*, float*, float*))r->cave)(out, v, m);
+        CHECK(fabs(out[0] - e) < 1e-5f && fabs(out[1] - 2 * e) < 1e-5f && fabs(out[2] - 3 * e) < 1e-5f,
+              "ship movement scaled: (%.4f, %.4f, %.4f)", out[0], out[1], out[2]);
+    } else {
+        CHECK(false, "ship movement patch present");
+    }
+
+    // Jump arc: one second of a jump (v0 0.3, g 0.014) at 144 fps must land where 60 fps does.
+    {
+        const float g = 0.014f, v0 = 0.3f;
+        float y60 = 0, v = v0;
+        for (int i = 0; i < 60; ++i) {
+            v -= g;
+            y60 += v;
+        }
+        alignas(16) uint8_t ent[0x100] = {};
+        float* pos = (float*)(ent + 0x50);
+        ((float*)(ent + 0xD0))[1] = 1.0f;  // up axis
+        float savedE = S->stepUpToOne;
+        float e = S->stepUpToOne = 60.0f / 144.0f;
+        v = v0;
+        for (int i = 0; i < 144; ++i) {
+            float vb = i == 0 ? v0 : v;  // the jump state sets v0 on the first frame
+            v = ExactGravity(ent, vb, vb - g * e, g, e, false);
+            pos[1] += v * e;
+        }
+        float naive = 0;
+        v = v0;
+        for (int i = 0; i < 144; ++i) {
+            v -= g * e;
+            naive += v * e;
+        }
+        CHECK(fabs(pos[1] - y60) < 0.002f, "jump height after 1 s: 60 fps %.4f, mod 144 fps %.4f (unfixed %.4f)", y60, pos[1], naive);
+        // Glide: the state machine re-sets vel.y every frame.
+        float y60g = 0;
+        for (int i = 0; i < 60; ++i) y60g += -0.05f - g;
+        alignas(16) uint8_t ent2[0x100] = {};
+        ((float*)(ent2 + 0xD0))[1] = 1.0f;
+        float& y144g = ((float*)(ent2 + 0x50))[1];
+        for (int i = 0; i < 144; ++i) {
+            float vb = -0.05f;
+            y144g += ExactGravity(ent2, vb, vb - g * e, g, e, false) * e;
+        }
+        CHECK(fabs(y144g - y60g) < 0.002f, "glide sink after 1 s: 60 fps %.4f, mod 144 fps %.4f", y60g, y144g);
+        S->stepUpToOne = savedE;
+    }
+
+    // Input press buffers: 20 frames must last 1/3 s at any frame rate.
+    if (const PatchRecord* r = FindPatch("input press buffers")) {
+        alignas(16) uint8_t input[0x800] = {};
+        int* buf = (int*)(input + 0x770);
+        buf[2] = 20;
+        int frames = 0;
+        while (buf[2] > 0 && frames < 1000) {
+            SimulateFrame(144);
+            ((void (*)(void*))r->site)(input);
+            ++frames;
+        }
+        CHECK(frames >= 46 && frames <= 50, "jump buffer lasts %d frames at 144 fps (vanilla 20 at 60 fps = 48 at 144)", frames);
+    } else {
+        CHECK(false, "input press buffer patch present");
+    }
+
+    // Tick-gated functions return immediately when no 60 Hz tick elapsed (the
+    // invalid `this` proves the original body never runs).
+    if (const PatchRecord* r = FindPatch("option text marquee (left)")) {
+        S->ticks60 = 0;
+        ((void (*)(void*))r->site)((void*)0x10);
+        CHECK(true, "marquee update skipped on a frame without a 60 Hz tick");
+    } else {
+        CHECK(false, "marquee patch present");
+    }
+    if (const PatchRecord* r = FindPatch("rumble envelope")) {
+        int out = 7;
+        S->ticks60 = 0;
+        ((void (*)(void*, int*, int))r->cave)((void*)0x10, &out, 1);
+        CHECK(out == 7, "rumble envelope skipped on a frame without a 60 Hz tick");
+    } else {
+        CHECK(false, "rumble patch present");
+    }
+    S->ticks60 = 1;
+}
