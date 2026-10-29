@@ -123,6 +123,14 @@ bool PatchSite(const SigSite& s, F emit) {
 }
 // `dec eax` followed by position-independent stores of eax (a frame counter) -> subtract ticks60.
 void DecEaxByTicks(const SigSite& s);
+// `[REX] dec dword [reg+disp32]` or `sub dword [reg+disp32], 1` -> subtract ticks60
+// (flags as the subtraction leaves them).
+void DecMemByTicks(const SigSite& s);
+// A frame counter whose result feeds a branch on exactly zero: on a frame without a
+// 60 Hz tick the first `counterLen` bytes (the decrement and its store) are skipped
+// and the flags say "not zero", so the action can't fire twice while the counter
+// holds at 0. The rest of the site runs either way. Clobbers no registers.
+bool ZeroBranchOnTick(const SigSite& s, size_t counterLen);
 // Emits `<op>ss xmm<reg>, [target]` (op 0x10 movss, 0x58 addss, 0x59 mulss, 0x5C subss,
 // 0x5D minss); op 0x2F emits `comiss xmm<reg>, [target]`.
 void EmitSseRip(Asm& a, uint8_t op, uint8_t reg, const void* target);

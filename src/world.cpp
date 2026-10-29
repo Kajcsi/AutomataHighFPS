@@ -13,22 +13,9 @@
 
 #include "generated/sweep1.inc"
 #include "generated/sweep2.inc"
+#include "generated/sweep3.inc"
 
 static const float* E() { return &S->stepUpToOne; }
-
-// `sub dword [mem], 1` followed by a branch on exactly zero. On a frame without a 60 Hz
-// tick the counter is left alone and the flags say "not zero", so the action can't
-// fire twice while the counter sits at 0.
-static void SubOneOnTick(const SigSite& s) {
-    PatchSite(s, [&](Asm& a, uint8_t* site) {
-        a.raw({0x83, 0x3D}).rip(&S->ticks60, 1).raw({0x00});  // cmp dword [ticks60], 0
-        a.raw({0x74, (uint8_t)(s.len + 5)});                   // je noTick
-        a.copy(site, s.len);                                   // the original sub
-        a.jmp(site + s.len);
-        a.raw({0x50, 0x31, 0xC0, 0xFF, 0xC0, 0x58});           // noTick: push rax; xor eax, eax; inc eax; pop rax
-        a.jmp(site + s.len);
-    });
-}
 
 // Boss HP gauge: v = (target + v) * 0.5 per frame -> target*(1-0.5^e) + v*0.5^e
 // (no target: v *= 0.5^e). Both paths continue at the store after the original *0.5.
@@ -55,6 +42,63 @@ static void FixBossGauge() {
     });
 }
 
+// Remaining counters and steps (analysis/sweep3_patches.tsv): player press buffers and
+// scripted-state waits, hit/phase windows of the combat manager, the camera's
+// skip-update counter, enemy and NPC pulls, Baa020 creature motion, ambient audio rays.
+static void FixRemaining() {
+    InstallTable(kSw3ScaledConsts, _countof(kSw3ScaledConsts));
+    InstallTable(kSw3ArgCalls, _countof(kSw3ArgCalls));
+    InstallTable(kSw3VecCalls, _countof(kSw3VecCalls));
+    for (const SigSite* s : {&kSw3_LO_PlPressBuf118, &kSw3_LO_PlPressBuf11C, &kSw3_LO_PlPressBuf120, &kSw3_LO_PlPressBuf124,
+                             &kSw3_LO_PlPressBuf128, &kSw3_LO_PlPressBuf12C, &kSw3_LO_PlPressBuf130, &kSw3_LO_PlPressBuf134,
+                             &kSw3_LO_PlPressBuf138, &kSw3_LO_CamSkipUpdate8C08, &kSw3_LO_HitWindowMgr134,
+                             &kSw3_LO_PhaseFlagTailMgr14CC})
+        DecEaxByTicks(*s);
+    // Inlined copy of the camera skip counter: `dec eax; mov [rip+disp32], eax`.
+    PatchSite(kSw3_LO_CamSkipUpdate8C08_B, [](Asm& a, uint8_t* site) {
+        const void* counter = RipTarget(site + 2, 2, 6);
+        a.raw({0x2B, 0x05}).rip(&S->ticks60);                       // sub eax, [ticks60]
+        a.raw({0x89, 0x05}).rip(counter);                           // mov [counter], eax
+        a.jmp(site + 8);
+    });
+    for (const SigSite* s : {&kSw3_LO_PlFallReturnWait, &kSw3_LO_PlStgBeamWait, &kSw3_LO_PlStgBeamWait300,
+                             &kSw3_LO_PlGraceFrame1A94})
+        DecMemByTicks(*s);
+    // Scripted hover/shoot states: sway velocity smoothing and decay by a register that
+    // holds 0.1 and is reused later.
+    const float* lerp01 = NewScaled("player sway smoothing 0.1", Scale::Lerp, 0.1f);
+    const float* pow01 = NewScaled("player sway decay 0.1", Scale::Pow, 0.1f);
+    RewriteSite(kSw3_LO_PlSwayVelLerpA, {{4, 4, kMulss, 1, lerp01}});  // mulss xmm1, xmm7
+    RewriteSite(kSw3_LO_PlSwayVelLerpB, {{4, 5, kMulss, 1, lerp01}});  // mulss xmm1, xmm8
+    RewriteSite(kSw3_LO_PlSwayVelDecayA, {{0, 4, kMulss, 0, pow01}});  // mulss xmm0, xmm7
+    RewriteSite(kSw3_LO_PlSwayVelDecayB, {{0, 5, kMulss, 0, pow01}});  // mulss xmm0, xmm8
+    LerpObjectFactor(kSw3_LO_EmHitPullY);
+    // Baa020: speed ramps up/down by a per-object step each frame, phased by a frame
+    // counter; its state duration counter feeds an exactly-zero branch.
+    PatchSite(kSw3_LO_Baa020SpeedRampUp, [](Asm& a, uint8_t* site) {
+        a.copy(site, 8);                                            // movss xmm0, [rbx+0x2D74]
+        EmitSseRip(a, kMulss, 0, E());
+        a.jmp(site + 8);
+    });
+    PatchSite(kSw3_LO_Baa020SpeedRampDown, [](Asm& a, uint8_t* site) {
+        a.raw({0xF3, 0x0F, 0x10, 0x8B}).copy(site + 12, 4);         // movss xmm1, [rbx+0x2D74]
+        EmitSseRip(a, kMulss, 1, E());
+        a.copy(site, 8);                                            // movss xmm0, [rbx+0x2D70]
+        a.raw({0xF3, 0x0F, 0x5C, 0xC1});                            // subss xmm0, xmm1
+        a.jmp(site + 16);
+    });
+    PatchSite(kSw3_LO_Baa020RampFrameCtr, [](Asm& a, uint8_t* site) {
+        a.raw({0x03, 0x05}).rip(&S->ticks60);                       // add eax, [ticks60] (was inc eax)
+        a.copy(site + 2, 8);                                        // xor ecx, ecx; mov [rbx+0x2D78], eax
+        a.jmp(site + 10);
+    });
+    ZeroBranchOnTick(kSw3_LO_Baa020StateFrames, 8);
+    // Ambient audio (sound worker, kicked once per frame): rays live 64 frames and 8 are
+    // spawned per frame -> 64 ticks and 8 per tick, so the openness average spans the same time.
+    ZeroBranchOnTick(kSw3_LO_AmbRayLifetime, 4);
+    if (uint8_t* site = SiteOf(kSw3_LO_AmbRaySpawnGate)) GateCallOnTick(kSw3_LO_AmbRaySpawnGate.name, site);
+}
+
 void FixWorld() {
     Log("world:");
     InstallTable(kSw1ScaledConsts, _countof(kSw1ScaledConsts));
@@ -79,11 +123,13 @@ void FixWorld() {
         a.raw({0x58});                                              // pop rax
         a.jmp(site + 6);
     });
-    SubOneOnTick(kSw2_SW2_CoreMenuCtrB);
-    SubOneOnTick(kSw2_SW2_CoreMenuCtrC);
+    ZeroBranchOnTick(kSw2_SW2_CoreMenuCtrB, 7);
+    ZeroBranchOnTick(kSw2_SW2_CoreMenuCtrC, 7);
     // Operating-ratio display counts up/down by 1 per frame toward an integer target.
     RewriteSite(kSw2_SW2_OpRatioStepDown, {{0, 8, kSubss, 0, &S->ticks60f}});
     RewriteSite(kSw2_SW2_OpRatioStepUp, {{0, 8, kAddss, 0, &S->ticks60f}});
     // Pollution gauge fill: increment per frame -> * e.
     ScaleThenReplay(kSw2_SW2_PollutionFillStep, 0);
+
+    FixRemaining();
 }

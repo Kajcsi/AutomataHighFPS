@@ -368,6 +368,32 @@ void DecEaxByTicks(const SigSite& s) {
     });
 }
 
+void DecMemByTicks(const SigSite& s) {
+    PatchSite(s, [&](Asm& a, uint8_t* site) {
+        int rex = (site[0] & 0xF0) == 0x40;
+        bool subImm = site[rex] == 0x83;                                     // sub dword [mem], 1 (imm8 at the end)
+        a.raw({0x50});                                                       // push rax
+        a.raw({0x8B, 0x05}).rip(&S->ticks60);                                // mov eax, [ticks60]
+        if (rex) a.raw({site[0]});
+        a.raw({0x29, (uint8_t)(site[rex + 1] & ~0x38)});                     // sub [reg+disp32], eax
+        a.copy(site + rex + 2, s.len - rex - 2 - (subImm ? 1 : 0));
+        a.raw({0x58});                                                       // pop rax (flags kept from the sub)
+        a.jmp(site + s.len);
+    });
+}
+
+bool ZeroBranchOnTick(const SigSite& s, size_t counterLen) {
+    return PatchSite(s, [&](Asm& a, uint8_t* site) {
+        a.raw({0x83, 0x3D}).rip(&S->ticks60, 1).raw({0x00});  // cmp dword [ticks60], 0
+        a.raw({0x74, (uint8_t)(s.len + 5)});                   // je noTick
+        a.copy(site, s.len);                                   // the original decrement and stores
+        a.jmp(site + s.len);
+        a.copy(site + counterLen, s.len - counterLen);         // noTick: the other instructions only
+        a.raw({0x50, 0x31, 0xC0, 0xFF, 0xC0, 0x58});           // push rax; xor eax, eax; inc eax (ZF=0); pop rax
+        a.jmp(site + s.len);
+    });
+}
+
 void EmitSseRip(Asm& a, uint8_t op, uint8_t reg, const void* target) {
     if (op != kComiss) a.raw({0xF3});
     if (reg >= 8) a.raw({0x44});

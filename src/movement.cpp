@@ -139,20 +139,6 @@ static void DecRegByTicks(const SigSite& s) {
     });
 }
 
-// `[REX] dec dword [reg+disp32]` -> `[REX] sub dword [reg+disp32], eax` with eax = ticks60.
-static void DecMemByTicks(const SigSite& s) {
-    PatchSite(s, [&](Asm& a, uint8_t* site) {
-        int rex = (site[0] & 0xF0) == 0x40;
-        a.raw({0x50});                                                       // push rax
-        a.raw({0x8B, 0x05}).rip(&S->ticks60);                                // mov eax, [ticks60]
-        if (rex) a.raw({site[0]});
-        a.raw({0x29, (uint8_t)(site[rex + 1] & ~0x38)});                     // sub [reg+disp32], eax
-        for (int i = rex + 2; i < s.len; ++i) a.raw({site[i]});
-        a.raw({0x58});                                                       // pop rax
-        a.jmp(site + s.len);
-    });
-}
-
 void FixMovementExtra() {
     Log("movement (extra):");
     InstallTable(kMoveScaledConsts, _countof(kMoveScaledConsts));
