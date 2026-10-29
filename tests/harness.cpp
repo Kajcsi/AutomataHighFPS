@@ -17,6 +17,7 @@ const wchar_t* GameDir() { return L".\\"; }
 static int g_failures;
 // Defined in tests/subsystem_tests.cpp.
 void RunSubsystemTests(uint8_t* img, int* failures);
+extern const uint8_t* g_pristineImage;
 #define CHECK(cond, ...)                                     \
     do {                                                     \
         bool c_ = (cond);                                    \
@@ -269,6 +270,7 @@ int wmain(int argc, wchar_t** argv) {
     CHECK(ResolveGame(), "signatures resolved");
     CHECK(InstallCorePatches(), "core patches installed");
     InstallSubsystemPatches();
+    g_pristineImage = pristine;
     if (argc > 3) {
         Functional(img);
         RunSubsystemTests(img, &g_failures);

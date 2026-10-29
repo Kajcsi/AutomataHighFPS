@@ -13,6 +13,7 @@ void FixBulletsAndEnemies();
 void FixWorld();
 void FixExactSmoothing();
 void FixAnimationInputs();
+void FixRemainingExact();
 // Per-frame diagnostics log ([Debug] JumpLog=1).
 void DebugJumpFrame();
 void FixCamera();

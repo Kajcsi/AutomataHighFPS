@@ -308,5 +308,6 @@ void InstallSubsystemPatches() {
     FixCamera();
     FixExactSmoothing();
     FixAnimationInputs();
+    FixRemainingExact();
     if (g_cfg.fixCloth) FixCloth();
 }

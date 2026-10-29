@@ -154,11 +154,5 @@ void FixMovementExtra() {
     for (const SigSite* s : {&kMove_IC_BuddyHpDrain_10668, &kMove_IC_Delay_164F0, &kMove_Pod_SonarPing})
         DecMemByTicks(*s);
 
-    // A2 evade turn: `mulss xmm2, xmm7` (xmm7 = 0.1, also the lerp target) -> scaled 0.1.
-    float* k = NewScaled("A2 evade turn", Scale::Lerp, 0.1f);
-    PatchSite(kMove_A2_EvadeTurnLerp, [&](Asm& a, uint8_t* site) {
-        a.raw({0xF3, 0x0F, 0x59, 0x15}).rip(k);  // mulss xmm2, [k]
-        a.raw({0xF3, 0x0F, 0x58, 0xD1});         // addss xmm2, xmm1
-        a.jmp(site + 8);
-    });
+    // (A2 evade turn: see misc.cpp.)
 }
