@@ -17,6 +17,7 @@ struct Config {
     bool fixFrameCounters = true;  // per-frame counters tick at 60 Hz
     bool fixMsTimers = true;       // millisecond timers keep sub-ms remainders
     bool fixSubsystems = true;     // hacking, menus, flight unit, fishing, movement fixes
+    bool fixCloth = true;          // cloth and hair physics step at 60 Hz with in-between previews
     int menuFps = 0;               // optional cap while a menu is open (0 = off)
     bool unlimitedLoading = true;  // uncap loading screens (faster loads)
     bool forceMaxRefresh = true;   // exclusive fullscreen uses the highest refresh rate

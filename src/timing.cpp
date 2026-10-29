@@ -95,6 +95,7 @@ void OnUpdateTimeStep(void* obj, int variableStep, float fixedStep) {
         S->ticks60 = t;
     }
     S->ticks60f = (float)S->ticks60;
+    S->tickPhase = (float)g_tickAcc;
     UpdateScaledConstants(S->stepUpToOne);
     UpdateLimiter();
     PollHotkey();

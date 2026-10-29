@@ -15,6 +15,6 @@ call "%VCVARS%" >nul || exit /b 1
 cd /d "%~dp0"
 if not exist build mkdir build
 cl /nologo /O2 /MT /EHsc /std:c++17 /W3 /GS- /LD /Fobuild\ /Fdbuild\ ^
-    src\dllmain.cpp src\log.cpp src\config.cpp src\memory.cpp src\game.cpp src\timing.cpp src\display.cpp src\subsystems.cpp src\patchkit.cpp src\flight.cpp src\hacking.cpp src\movement.cpp ^
+    src\dllmain.cpp src\log.cpp src\config.cpp src\memory.cpp src\game.cpp src\timing.cpp src\display.cpp src\subsystems.cpp src\patchkit.cpp src\flight.cpp src\hacking.cpp src\movement.cpp src\cloth.cpp ^
     /link /DEF:src\dinput8.def /OUT:build\dinput8.dll /IMPLIB:build\dinput8.lib user32.lib || exit /b 1
 echo Built build\dinput8.dll

@@ -12,6 +12,7 @@ struct SharedState {
     float stepOrOne;          // max(step, 1): what per-frame code assumed it was advancing
     float stepUpToOne;        // e = min(step, 1): scale for amounts vanilla applied once per frame
     float frameSec;           // seconds per update for code that assumed 1/60: e / 60
+    float tickPhase;          // fraction of a 60 Hz frame elapsed since the last 60 Hz tick
 };
 extern SharedState* S;
 extern uint64_t g_frame;

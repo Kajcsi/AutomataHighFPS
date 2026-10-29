@@ -8,6 +8,9 @@ void InstallSubsystemPatches();
 void FixFlightUnit();
 void FixHacking();
 void FixMovementExtra();
+void FixCloth();
+// Replaces the original Cloth::Step the hook calls (test harness only).
+void SetClothStepForTest(void (*step)(unsigned char* cloth, float dt, int flag));
 
 // Gravity step used by the player and enemy integrator patches (exposed for tests):
 // returns the vel.y to store and corrects the position at entity+0x50 in free fall.

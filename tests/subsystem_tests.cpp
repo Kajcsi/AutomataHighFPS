@@ -140,6 +140,59 @@ void RunSubsystemTests(uint8_t* img, int* failures) {
         S->stepUpToOne = savedE;
     }
 
+    // Cloth: a frame-dependent stand-in step (velocity decays 0.9 per call), driven
+    // through the patched Cloth::Step entry, must advance exactly in 60 Hz steps and
+    // keep values written by other systems between frames.
+    if (const PatchRecord* r = FindPatch("cloth step")) {
+        static uint8_t cloth[0xC10], nodes[0x130], bone[0x40];
+        memset(cloth, 0, sizeof cloth);
+        memset(nodes, 0, sizeof nodes);
+        memset(bone, 0, sizeof bone);
+        *(uint32_t*)(cloth + 0x20) = 1;
+        *(uint8_t**)(cloth + 0x28) = nodes;
+        *(uint8_t**)(cloth + 0xB10) = bone;  // any non-null model pointer
+        *(uint8_t**)(nodes + 0x110) = bone;
+        float* vel = (float*)(nodes + 0x40);
+        float* pos = (float*)(nodes + 0x50);
+        float* input = (float*)(nodes + 0x70);
+        vel[0] = 1.0f;
+        SetClothStepForTest([](uint8_t* c, float dt, int) {
+            uint8_t* n = *(uint8_t**)(c + 0x28);
+            float* v = (float*)(n + 0x40);
+            ((float*)(n + 0x50))[0] += v[0] * dt;
+            v[0] *= 0.9f;
+            ((float*)*(uint8_t**)(n + 0x110))[0] += 1.0f;  // the step also rewrites its bone
+        });
+        auto step = (void (*)(uint8_t*, float, int))r->site;
+        int commits = 0;
+        bool inputKept = true;
+        for (int i = 0; i < 144; ++i) {
+            SimulateFrame(144);
+            if (i == 0 || S->ticks60 > 0) ++commits;
+            *input = (float)i;  // the skeleton update rewrites per-frame inputs every frame
+            step(cloth, S->step, 0);
+            inputKept &= *input == (float)i;
+        }
+        g_cfg.targetFps = 60;
+        SimulateFrame(60);
+        SimulateFrame(60);  // now at vanilla pacing: rolls back the preview, then one plain step
+        step(cloth, 1.0f, 0);
+        g_cfg.targetFps = savedTarget;
+        ++commits;
+        float expect = 0, v = 1.0f;
+        for (int k = 0; k < commits; ++k) {
+            expect += v;
+            v *= 0.9f;
+        }
+        CHECK(fabs(pos[0] - expect) < 1e-4f && fabs(vel[0] - v) < 1e-6f && ((float*)bone)[0] == (float)commits,
+              "cloth after %d 60 Hz steps: pos %.5f (expected %.5f), vel %.5f (expected %.5f), bone %g", commits, pos[0], expect,
+              vel[0], v, ((float*)bone)[0]);
+        CHECK(inputKept, "cloth rollback keeps inputs written between frames");
+        SimulateFrame(144);
+    } else {
+        CHECK(false, "cloth patch present");
+    }
+
     // Input press buffers: 20 frames must last 1/3 s at any frame rate.
     if (const PatchRecord* r = FindPatch("input press buffers")) {
         alignas(16) uint8_t input[0x800] = {};

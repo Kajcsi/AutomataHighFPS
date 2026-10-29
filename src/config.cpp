@@ -20,6 +20,8 @@ static const char kDefaultIni[] =
     "FixMsTimers=1\r\n"
     "; Hacking, menus, flight unit, fishing and movement fixes.\r\n"
     "FixSubsystems=1\r\n"
+    "; Cloth and hair physics step at 60 Hz with smooth in-between frames.\r\n"
+    "FixCloth=1\r\n"
     "\r\n"
     "[Limits]\r\n"
     "; Optional frame rate cap while a menu is open (0 = no cap).\r\n"
@@ -54,6 +56,7 @@ void LoadConfig(const wchar_t* path) {
     g_cfg.fixFrameCounters = ReadInt(path, L"Fixes", L"FixFrameCounters", 1) != 0;
     g_cfg.fixMsTimers = ReadInt(path, L"Fixes", L"FixMsTimers", 1) != 0;
     g_cfg.fixSubsystems = ReadInt(path, L"Fixes", L"FixSubsystems", 1) != 0;
+    g_cfg.fixCloth = ReadInt(path, L"Fixes", L"FixCloth", 1) != 0;
     g_cfg.menuFps = ReadInt(path, L"Limits", L"MenuFPS", 0);
     g_cfg.unlimitedLoading = ReadInt(path, L"Limits", L"UnlimitedLoading", 1) != 0;
     g_cfg.forceMaxRefresh = ReadInt(path, L"Display", L"ForceMaxRefreshRate", 1) != 0;

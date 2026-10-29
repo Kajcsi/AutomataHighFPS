@@ -303,4 +303,5 @@ void InstallSubsystemPatches() {
     FixFlightUnit();
     FixHacking();
     FixMovementExtra();
+    if (g_cfg.fixCloth) FixCloth();
 }
