@@ -86,7 +86,7 @@ static void Functional(uint8_t* img) {
     *(int64_t*)(obj + 0xA8) = now.QuadPart - freq.QuadPart / 50;
     OnUpdateTimeStep(obj, 1, 1.0f);
     CHECK(S->ticks60 == 1, "ticks60 at 50 fps = %d (vanilla: 1 per frame)", S->ticks60);
-    CHECK(fabs(S->targetUnits - 3000.0 / 60) < 1e-6 || S->targetUnits > 0, "limiter target %.3f units", S->targetUnits);
+    CHECK(S->targetUnits == 0.0, "no frame limit by default (limiter target %.3f units)", S->targetUnits);
 
     // --- Hit-stop counters in time nodes --------------------------------------
     alignas(16) uint8_t tobj[0x200] = {};

@@ -8,8 +8,8 @@ static const char kDefaultIni[] =
     "[General]\r\n"
     "; 1 = mod active, 0 = vanilla behaviour (DLL only forwards DirectInput).\r\n"
     "Enabled=1\r\n"
-    "; Frame rate limit. -1 = monitor refresh rate, 0 = unlimited, or a number such as 144.\r\n"
-    "TargetFPS=-1\r\n"
+    "; Frame rate limit. 0 = no limit (V-Sync limits it when enabled), -1 = monitor refresh rate, or a number such as 144.\r\n"
+    "TargetFPS=0\r\n"
     "; Key that toggles a temporary 60 fps cap (virtual-key code, 0x7A = F11, 0 = off).\r\n"
     "ToggleCapKey=0x7A\r\n"
     "\r\n"
@@ -51,7 +51,7 @@ void LoadConfig(const wchar_t* path) {
         }
     }
     g_cfg.enabled = ReadInt(path, L"General", L"Enabled", 1) != 0;
-    g_cfg.targetFps = ReadInt(path, L"General", L"TargetFPS", -1);
+    g_cfg.targetFps = ReadInt(path, L"General", L"TargetFPS", 0);
     g_cfg.toggleKey = ReadInt(path, L"General", L"ToggleCapKey", VK_F11);
     g_cfg.fixFrameCounters = ReadInt(path, L"Fixes", L"FixFrameCounters", 1) != 0;
     g_cfg.fixMsTimers = ReadInt(path, L"Fixes", L"FixMsTimers", 1) != 0;

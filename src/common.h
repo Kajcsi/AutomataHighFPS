@@ -13,7 +13,7 @@ void Log(const char* fmt, ...);
 // User settings (AutomataHighFPS.ini next to the game executable).
 struct Config {
     bool enabled = true;
-    int targetFps = -1;            // -1 = monitor refresh rate, 0 = unlimited
+    int targetFps = 0;             // 0 = unlimited (V-Sync limits it when enabled), -1 = monitor refresh rate
     bool fixFrameCounters = true;  // per-frame counters tick at 60 Hz
     bool fixMsTimers = true;       // millisecond timers keep sub-ms remainders
     bool fixSubsystems = true;     // hacking, menus, flight unit, fishing, movement fixes

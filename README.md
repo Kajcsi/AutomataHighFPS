@@ -27,7 +27,7 @@ The DLL loads as `dinput8.dll`, so it doesn't conflict with ReShade or Special K
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `TargetFPS` | `-1` | Frame rate limit. `-1` = monitor refresh rate, `0` = unlimited, or a number such as `141`. |
+| `TargetFPS` | `0` | Frame rate limit. `0` = no limit (with V-Sync on, the monitor refresh rate is the limit), `-1` = monitor refresh rate, or a number such as `141`. |
 | `ToggleCapKey` | `0x7A` (F11) | Toggles a temporary 60 FPS cap. A beep confirms the toggle. |
 | `FixFrameCounters` | `1` | Per-frame counters (hit-stop, transition cooldowns, …) tick at 60 Hz. |
 | `FixMsTimers` | `1` | Quest/script millisecond timers stay accurate at any frame rate. |
