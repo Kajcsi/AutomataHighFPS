@@ -34,12 +34,26 @@ size_t ScanPattern(const uint8_t* start, size_t size, const Pattern& p, uint8_t*
     size_t count = 0;
     if (first) *first = nullptr;
     if (size < p.len) return 0;
-    // Anchor on the first non-wildcard byte for speed.
-    size_t anchor = 0;
-    while (anchor < p.len && p.wild[anchor]) ++anchor;
+    // Byte frequencies of the scanned region (computed once per region) pick the rarest
+    // non-wildcard byte of the pattern as the anchor; memchr then jumps between its
+    // occurrences. Hundreds of signatures are scanned over the same code section.
+    static const uint8_t* histStart;
+    static size_t histSize, hist[256];
+    if (histStart != start || histSize != size) {
+        memset(hist, 0, sizeof hist);
+        for (size_t i = 0; i < size; ++i) ++hist[start[i]];
+        histStart = start;
+        histSize = size;
+    }
+    size_t anchor = p.len;
+    for (size_t i = 0; i < p.len; ++i)
+        if (!p.wild[i] && (anchor == p.len || hist[p.bytes[i]] < hist[p.bytes[anchor]])) anchor = i;
+    if (anchor == p.len) return 0;  // all wildcards
     const uint8_t* end = start + size - p.len;
     for (const uint8_t* c = start; c <= end; ++c) {
-        if (c[anchor] != p.bytes[anchor]) continue;
+        const uint8_t* hit = (const uint8_t*)memchr(c + anchor, p.bytes[anchor], (size_t)(end - c) + 1);
+        if (!hit) break;
+        c = hit - anchor;
         size_t i = 0;
         for (; i < p.len; ++i)
             if (!p.wild[i] && c[i] != p.bytes[i]) break;
