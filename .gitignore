@@ -1,5 +1,6 @@
-# Build output
-build/
+# Build output (the prebuilt DLL itself is kept so the mod can be installed without building)
+build/*
+!build/dinput8.dll
 tests/build/
 *.obj
 *.pdb

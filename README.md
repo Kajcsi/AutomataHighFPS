@@ -111,7 +111,9 @@ please report where it happened.
   `src\generated\*.inc`, embedding the original bytes so the DLL refuses to
   patch anything unexpected.
 - `tests\build_tests.bat` builds `tests\build\harness.exe`, an offline test
-  that maps a SteamStub-decrypted game executable without running it, applies
+  that maps a SteamStub-decrypted copy of your own game executable (not
+  included; the game's `.text` section is encrypted on disk) without running it,
+  applies
   every patch, and calls the patched game functions with simulated frame times
   (for example: the time step at 144 FPS, hit-stop counters, quest timers at
   2000 FPS). `tests\disasm_patches.py` disassembles every patch site and code
