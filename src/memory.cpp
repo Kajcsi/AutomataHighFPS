@@ -131,6 +131,10 @@ uint8_t* NearArena::Alloc(size_t n, size_t align) {
     return base_ + at;
 }
 
+void NearArena::Trim(uint8_t* p, size_t allocated, size_t used) {
+    if (base_ && p + allocated == base_ + used_ && used <= allocated) used_ = (size_t)(p - base_) + used;
+}
+
 uint8_t* NearArena::Thunk(const void* target) {
     uint8_t* t = Alloc(16);
     if (!t) return nullptr;

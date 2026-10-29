@@ -1,7 +1,8 @@
 // Third-person camera. Each camera mode ramps its follow factors, smooths angles,
 // distances and offsets, steps angular impulses and counts frames once per frame.
 // Ramps become c*e, per-frame smoothing 1-(1-k)^e, impulses and steps *e, frame
-// counters 60 Hz ticks. Fractions the camera already multiplies by the frame delta
+// counters 60 Hz ticks. The transition blend keeps its stored rate raw and converts
+// only where the rate is applied. Fractions the camera already multiplies by the frame delta
 // (min(delta*k, 1)) are turned into the exact 1-(1-min(delta*k/e, 1))^e.
 // Sites come from analysis/camera_patches.tsv via tools/gen_patch_tables.py.
 #include "subsystems.h"
@@ -9,8 +10,76 @@
 #include "timing.h"
 
 #include "generated/camera.inc"
+#include "generated/camera_blend.inc"
 
 static const float* E() { return &S->stepUpToOne; }
+
+// xmm9 = LerpE(xmm9) through xmm0 (xmm0 must be dead).
+static void EmitLerpXmm9(Asm& a) {
+    a.raw({0x41, 0x0F, 0x28, 0xC1});  // movaps xmm0, xmm9
+    EmitFloatCall(a, &LerpE, 0, 0);
+    a.raw({0x44, 0x0F, 0x28, 0xC8});  // movaps xmm9, xmm0
+}
+
+// Transition blend (0x14073B8A0): the rate at +0x698 and the fractions derived from it
+// stay exactly as vanilla computes and stores them; only where a fraction is applied to
+// a camera value (once per frame) does it become 1-(1-f)^e.
+static void FixCameraBlend() {
+    // +0x698 rate smoothing toward its target.
+    LerpObjectFactor(kCamB_CAM_BLEND_694);
+    // Path A: xmm7 keeps the raw fraction (stored to +0x698), xmm9 the applied one.
+    PatchSite(kCamB_CAM_BLEND_A_FINAL, [](Asm& a, uint8_t* site) {
+        a.copy(site, 11);                                           // lea rdx, [rsi+0x140]; movaps xmm7, xmm9
+        EmitFloatCall(a, &LerpE, 7, 0);
+        a.raw({0x44, 0x0F, 0x28, 0xC8});                            // movaps xmm9, xmm0
+        a.jmp(site + 11);
+    });
+    PatchSite(kCamB_CAM_BLEND_A_STORE, [](Asm& a, uint8_t* site) {
+        a.raw({0xF3, 0x0F, 0x11, 0xBE}).copy(site + 5, 4);          // movss [rsi+0x698], xmm7 (raw)
+        a.jmp(site + 9);
+    });
+    // Path B: blended fractions p*k + (1-p)*rate are final here and never stored.
+    PatchSite(kCamB_CAM_BLEND_B1_FINAL, [](Asm& a, uint8_t* site) {
+        a.copy(site, 5);                                            // addss xmm6, xmm8
+        EmitFloatCall(a, &LerpE, 2, 2);
+        EmitFloatCall(a, &LerpE, 3, 3);
+        EmitFloatCall(a, &LerpE, 6, 6);
+        a.jmp(site + 5);
+    });
+    PatchSite(kCamB_CAM_BLEND_B2_FINAL, [](Asm& a, uint8_t* site) {
+        a.copy(site, 5);                                            // addss xmm9, xmm0
+        EmitLerpXmm9(a);
+        a.jmp(site + 5);
+    });
+    // Path C: xmm9 is a temporary copy of the fraction (or its max with [0x508]).
+    for (const SigSite* s : {&kCamB_CAM_BLEND_C_F0, &kCamB_CAM_BLEND_C_100}) {
+        PatchSite(*s, [&](Asm& a, uint8_t* site) {
+            EmitLerpXmm9(a);
+            a.copy(site, s->len);                                   // lea r14/rdi, [rsi+...]
+            a.jmp(site + s->len);
+        });
+    }
+    // Path C scalar and vector lerps by xmm7, which stays raw for the store.
+    for (const SigSite* s : {&kCamB_CAM_BLEND_C_138, &kCamB_CAM_BLEND_C_130}) {
+        PatchSite(*s, [&](Asm& a, uint8_t* site) {
+            a.copy(site, 4);                                        // subss xmm1, xmm0
+            EmitFloatCall(a, &LerpE, 7, 2);
+            a.raw({0xF3, 0x0F, 0x59, 0xCA});                        // mulss xmm1, xmm2
+            a.jmp(site + 8);
+        });
+    }
+    PatchSite(kCamB_CAM_BLEND_C_120, [](Asm& a, uint8_t* site) {
+        EmitFloatCall(a, &LerpE, 7, 2);                             // movaps xmm2, xmm7 -> LerpE
+        a.copy(site + 3, 4);                                        // lea rdx, [rbp-0x19]
+        a.jmp(site + 7);
+    });
+    // Epilogue: the orientation slerp toward the target by xmm7 each frame.
+    PatchSite(kCamB_CAM_BLEND_EPI_SLERP, [](Asm& a, uint8_t* site) {
+        EmitFloatCall(a, &LerpE, 7, 1);                             // movaps xmm1, xmm7 -> LerpE
+        a.copy(site + 3, 3);                                        // mov rcx, rsi
+        a.jmp(site + 6);
+    });
+}
 
 static const float* Constant(float v) {
     float* p = (float*)g_arena.Alloc(4, 4);
@@ -155,4 +224,6 @@ void FixCamera() {
     ExactFraction(kCam_CAM_TRK_PITCH_FRAC_EXACT, 5, 0, inv);
     ExactFraction(kCam_CAM_APPLY_FRAC_EXACT, 8, 6, inv);
     ExactFraction(kCam_HELPER_66ED60_EXACT, 5, 0, inv);
+
+    FixCameraBlend();
 }

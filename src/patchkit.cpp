@@ -21,8 +21,8 @@ static float Evaluate(Scale kind, float c, float e) {
     if (!(e < 1.0f)) return kind == Scale::LerpRatio ? 1.0f : c;  // exactly vanilla at <= 60 fps
     switch (kind) {
     case Scale::Lin: return c * e;
-    case Scale::Pow: return powf(c, e);
-    case Scale::Lerp: return 1.0f - powf(1.0f - c, e);
+    case Scale::Pow: return c >= 0.0f ? powf(c, e) : c;
+    case Scale::Lerp: return c <= 1.0f ? 1.0f - powf(1.0f - c, e) : c;
     case Scale::Sq: return c * e * e;
     case Scale::Inv: return e > 1e-6f ? c / e : c;
     case Scale::LerpRatio: return (1.0f - powf(1.0f - c, e)) / c;
@@ -232,14 +232,16 @@ uint8_t* FindEither(const char* name, const char* sig, const char* sigAlt) {
     return sigAlt ? FindUnique(name, sigAlt) : nullptr;
 }
 
+// Factors outside the range where the 60 Hz recurrence has a real-valued equivalent
+// (negative decay, overshooting smoothing above 1) pass through unchanged instead of NaN.
 float PowE(float x) {
     float e = S->stepUpToOne;
-    return e < 1.0f ? powf(x, e) : x;
+    return e < 1.0f && x >= 0.0f ? powf(x, e) : x;
 }
 
 float LerpE(float x) {
     float e = S->stepUpToOne;
-    return e < 1.0f ? 1.0f - powf(1.0f - x, e) : x;
+    return e < 1.0f && x <= 1.0f ? 1.0f - powf(1.0f - x, e) : x;
 }
 
 // ---------------------------------------------------------------------------

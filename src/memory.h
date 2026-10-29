@@ -38,6 +38,8 @@ class NearArena {
 public:
     bool Init(uint8_t* imageBase, size_t imageSize);
     uint8_t* Alloc(size_t n, size_t align = 16);
+    // Gives back the unused tail of the most recent allocation (no-op otherwise).
+    void Trim(uint8_t* p, size_t allocated, size_t used);
     // Returns a stub inside the arena that jumps to `target`, so rel32 calls can reach it.
     uint8_t* Thunk(const void* target);
     bool Contains(const void* p) const { return p >= base_ && p < base_ + size_; }
@@ -89,17 +91,19 @@ bool InstallCaveUnchecked(const char* name, uint8_t* site, size_t len, bool viaC
         Log("  [skip] %s: bad patch length %zu", name, len);
         return false;
     }
-    uint8_t* cave = g_arena.Alloc(256);
+    const size_t kMaxCave = 1024;
+    uint8_t* cave = g_arena.Alloc(kMaxCave);
     if (!cave) {
         Log("  [skip] %s: code arena full", name);
         return false;
     }
     Asm a(cave);
     emit(a);
-    if (a.size() > 256) {  // would spill into the next allocation
+    if (a.size() > kMaxCave) {  // would spill into the next allocation
         Log("  [FAIL] %s: cave too large (%zu bytes)", name, a.size());
         return false;
     }
+    g_arena.Trim(cave, kMaxCave, a.size());
     uint8_t patch[64];
     Asm p(patch);
     p.raw({(uint8_t)(viaCall ? 0xE8 : 0xE9)}).i32((int32_t)(cave - (site + 5)));

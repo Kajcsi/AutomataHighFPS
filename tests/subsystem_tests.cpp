@@ -94,6 +94,8 @@ static void BulletAndEnemyTests() {
     RunSite(line->site, line->len, obj, 0);
     CHECK(fabs(out[0] - (3.0f + e)) < 1e-6f, "guided-line frame counter at 144 fps: %.5f", out[0]);
     CHECK(fabs(*lerp01 - (1 - powf(0.9f, e))) < 1e-6f, "enemy movement smoothing at 144 fps: %.5f", *lerp01);
+    CHECK(LerpE(1.5f) == 1.5f && PowE(-0.5f) == -0.5f && LerpE(1.0f) == 1.0f,
+          "out-of-range factors pass through instead of NaN (LerpE(1.5) %.3f, PowE(-0.5) %.3f)", LerpE(1.5f), PowE(-0.5f));
 
     S->ticks60 = 0;
     int left = RunSite(ctr->site, ctr->len, obj, 10);
