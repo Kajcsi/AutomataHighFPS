@@ -97,7 +97,7 @@ for line in open(tsv, encoding='utf-8'):
     elif kind == 'SCALE_VEC_RESULT_CALL':
         vecs.append('    {%s, %s, %s, %d},' % (cstr(name), cstr(sig), cstr(alt), off))
     else:
-        n = int(row['replace_len']) or int(row['ins_len'])
+        n = int(row['replace_len'] or 0) or int(row['ins_len'])
         a, b = img[site:site + n], img2[site2:site2 + n]
         mask = sum(1 << i for i in range(n) if a[i] == b[i])
         sites.append('static const SigSite k%s_%s = {%s, %s, %s, %d, %s, %d, 0x%Xull};' % (
