@@ -14,6 +14,7 @@
 #include "generated/sweep1.inc"
 #include "generated/sweep2.inc"
 #include "generated/sweep3.inc"
+#include "generated/pod.inc"
 
 static const float* E() { return &S->stepUpToOne; }
 
@@ -99,6 +100,32 @@ static void FixRemaining() {
     if (uint8_t* site = SiteOf(kSw3_LO_AmbRaySpawnGate)) GateCallOnTick(kSw3_LO_AmbRaySpawnGate.name, site);
 }
 
+// Pods (analysis/pod_patches.tsv): orbit angle, follow-factor ramp and target smoothing,
+// bone and arm aim, program spins and beam growth, Pod B laser burst, keep-alive and
+// beam lengths, skill model lifetimes.
+static void FixPods() {
+    InstallTable(kPodScaledConsts, _countof(kPodScaledConsts));
+    InstallTable(kPodArgCalls, _countof(kPodArgCalls));
+    // [0x1810] += (target - [0x1810]) * 0.05 per frame; xmm11 (0.05) is also the default follow factor.
+    const float* lerp005 = NewScaled("pod follow ramp 0.05", Scale::Lerp, 0.05f);
+    RewriteSite(kPod_POD_Ramp1810_Bv10, {{0, 5, kMulss, 1, lerp005}});
+    RewriteSite(kPod_POD_Ramp1810_Fight, {{0, 5, kMulss, 0, lerp005}});
+    RewriteSite(kPod_POD_Ramp1810_180C, {{0, 5, kMulss, 0, lerp005}});
+    // Pod B laser lv3/lv4 follow-up burst: one shot per frame -> one per 60 Hz tick.
+    if (uint8_t* site = SiteOf(kPod_POD_LaserBurstGate)) GateCallOnTick(kPod_POD_LaserBurstGate.name, site);
+    DecMemByTicks(kPod_POD_LaserKeepAlive);
+    // Beam length += 1 per frame (xmm8 = 1.0 is also used as w).
+    RewriteSite(kPod_POD_LaserLength, {{0, 5, kAddss, 0, E()}});
+    // Reflected segment length += 1 per frame (xmm6 = 1.0 is also w), then its cap compare.
+    if (uint8_t* site = SiteOf(kPod_POD_LaserSegLength)) {
+        const void* cap = RipTarget(site + 4, 3, 7);
+        RewriteSite(kPod_POD_LaserSegLength, {{0, 4, kAddss, 0, E()}, {4, 7, kComiss, 0, cap}});
+    }
+    DecMemByTicks(kPod_POD_SpearModelLife);
+    DecEaxByTicks(kPod_POD_HandModelLife40);
+    DecEaxByTicks(kPod_POD_HandModelLife300);
+}
+
 void FixWorld() {
     Log("world:");
     InstallTable(kSw1ScaledConsts, _countof(kSw1ScaledConsts));
@@ -132,4 +159,5 @@ void FixWorld() {
     ScaleThenReplay(kSw2_SW2_PollutionFillStep, 0);
 
     FixRemaining();
+    FixPods();
 }

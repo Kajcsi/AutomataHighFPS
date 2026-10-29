@@ -144,6 +144,8 @@ struct SseSub {
 bool RewriteSite(const SigSite& s, std::initializer_list<SseSub> subs);
 // xmm<reg> *= e, then the original instructions (a per-frame step added to state).
 bool ScaleThenReplay(const SigSite& s, uint8_t reg);
+// The original instructions (which compute a per-frame step in xmm<reg>), then xmm<reg> *= e.
+bool ReplayThenScale(const SigSite& s, uint8_t reg);
 // xmm<reg> = LerpE(xmm<reg>) before the original instructions, or after them (`after`). reg < 8.
 bool LerpAround(const SigSite& s, uint8_t reg, bool after);
 // `mulss xD, [reg+disp]` with a per-object smoothing factor -> xD *= LerpE([reg+disp]).

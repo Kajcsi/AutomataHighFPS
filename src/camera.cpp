@@ -12,6 +12,7 @@
 #include "generated/camera.inc"
 #include "generated/camera_blend.inc"
 #include "generated/camera_event.inc"
+#include "generated/camera_shake.inc"
 
 static const float* E() { return &S->stepUpToOne; }
 
@@ -169,6 +170,57 @@ static void FixEventCamera(const float* inv) {
     ExactFraction(kCamE_CAM_590_APPROACH_FRAC_EXACT, 5, 7, inv);   // flags of the cmp before stay live
 }
 
+// `mov dword [rip+disp32], imm32` to `target`.
+static void EmitStoreImm(Asm& a, const void* target, uint32_t imm) {
+    a.raw({0xC7, 0x05}).rip(target, 4).i32((int32_t)imm);
+}
+
+// `movss [sign], xmmN; mov [sign], -1.0; jbe +10; mov [sign], 1.0` (30 bytes, flags from
+// the comiss before the site): on frames without a 60 Hz tick the sign keeps its value.
+static void HoldShakeSign(const SigSite& s) {
+    PatchSite(s, [&](Asm& a, uint8_t* site) {
+        const void* sign = RipTarget(site, 4, 8);
+        uint8_t* jbe = a.cur();
+        a.raw({0x76, 0x00});                                        // jbe negative
+        a.raw({0x83, 0x3D}).rip(&S->ticks60, 1).raw({0x00});        // cmp dword [ticks60], 0
+        a.raw({0x74, 0x00});                                        // je done
+        uint8_t* je1 = a.cur() - 2;
+        EmitStoreImm(a, sign, 0x3F800000);
+        a.jmp(site + 30);
+        jbe[1] = (uint8_t)(a.cur() - (jbe + 2));
+        a.raw({0x83, 0x3D}).rip(&S->ticks60, 1).raw({0x00});        // negative: cmp dword [ticks60], 0
+        a.raw({0x74, 0x00});                                        // je done
+        uint8_t* je2 = a.cur() - 2;
+        EmitStoreImm(a, sign, 0xBF800000);
+        uint8_t* done = a.cur();
+        je1[1] = (uint8_t)(done - (je1 + 2));
+        je2[1] = (uint8_t)(done - (je2 + 2));
+        a.jmp(site + 30);
+    });
+}
+
+// Camera shake: the smooth-shake integrator steps velocity and position once per frame,
+// and the axis shake picks new random signs every time it is re-armed (every frame while
+// an effect runs), so the jitter flipped at the frame rate. Signs now change on 60 Hz ticks.
+static void FixCameraShake() {
+    ReplayThenScale(kCamS_CAM_SHAKE_POS_ACCEL, 0);   // velocity += acceleration * e
+    ScaleThenReplay(kCamS_CAM_SHAKE_POS_VEL, 0);     // position += velocity * e
+    ReplayThenScale(kCamS_CAM_SHAKE_ROT_ACCEL, 1);
+    ScaleThenReplay(kCamS_CAM_SHAKE_ROT_VEL, 1);
+    // Axis shake re-arm: on frames without a tick skip both random sign blocks (the
+    // amplitude handling after them still runs).
+    PatchSite(kCamS_CAM_SHAKEAXIS_SIGN_GATE, [](Asm& a, uint8_t* site) {
+        const void* rng = RipTarget(site, 2, 10);
+        a.raw({0x83, 0x3D}).rip(&S->ticks60, 1).raw({0x00});        // cmp dword [ticks60], 0
+        a.raw({0x74, 0x0F});                                        // je skip
+        a.raw({0x69, 0x05}).rip(rng, 4).i32(0x19660D);              // imul eax, [rng], 0x19660D
+        a.jmp(site + 10);
+        a.jmp(site + 0x9F);                                         // skip: movss xmm2, [rcx+0x24]
+    });
+    HoldShakeSign(kCamS_CAM_SHAKEAXIS_ARM_SIGNX);
+    HoldShakeSign(kCamS_CAM_SHAKEAXIS_ARM_SIGNY);
+}
+
 void FixCamera() {
     Log("camera:");
     InstallTable(kCamScaledConsts, _countof(kCamScaledConsts));
@@ -281,4 +333,5 @@ void FixCamera() {
 
     FixCameraBlend();
     FixEventCamera(inv);
+    FixCameraShake();
 }

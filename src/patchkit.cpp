@@ -425,6 +425,14 @@ bool ScaleThenReplay(const SigSite& s, uint8_t reg) {
     });
 }
 
+bool ReplayThenScale(const SigSite& s, uint8_t reg) {
+    return PatchSite(s, [&](Asm& a, uint8_t* site) {
+        a.copy(site, s.len);
+        EmitSseRip(a, kMulss, reg, &S->stepUpToOne);
+        a.jmp(site + s.len);
+    });
+}
+
 bool LerpAround(const SigSite& s, uint8_t reg, bool after) {
     return PatchSite(s, [&](Asm& a, uint8_t* site) {
         if (after) a.copy(site, s.len);
