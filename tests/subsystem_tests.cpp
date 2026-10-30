@@ -656,6 +656,39 @@ static void PushBlockTests() {
     SimulateFrame(144);
 }
 
+// Auto-ending caption: closes the letterbox it still shows; a closed caption is left alone.
+static void CaptionTests(uint8_t* img) {
+    const PatchRecord* r = FindPatch("CP_CaptionAutoEndClose");
+    CHECK(r != nullptr, "caption auto-end patch present");
+    if (!r) return;
+    uint32_t& flags = *(uint32_t*)(img + 0x10297C0);
+    uint8_t* mgr = img + 0x1416B90;
+    uint8_t savedMgr[0x50];
+    memcpy(savedMgr, mgr + 0x2D60, sizeof savedMgr);
+    uint32_t savedFlags = flags;
+    static uint8_t* o = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+    FillState(o, 1);
+    o[0x49] = 0;
+    flags = 0x2200;
+    RunSite(r->site, r->len, o, 0);
+    bool idle = o[0x49] == 0 && flags == 0x2200;
+
+    FillState(o, 2);
+    o[0x49] = 1;
+    flags = 0x2200;
+    memset(mgr + 0x2D60, 0, sizeof savedMgr);
+    *(uint64_t*)(mgr + 0x2D60) = 1;  // a letterbox is open (only tested for non-null on this path)
+    *(uint32_t*)(mgr + 0x2D7C) = 1;  // opened by an auto-ending caption
+    RunSite(r->site, r->len, o, 0);
+    bool closed = o[0x49] == 0 && flags == 0x200 && *(uint32_t*)(mgr + 0x2D90) == 1 && *(uint32_t*)(mgr + 0x2D7C) == 0;
+
+    memcpy(mgr + 0x2D60, savedMgr, sizeof savedMgr);
+    flags = savedFlags;
+    CHECK(idle && closed, "auto-ending caption closes its letterbox and control lock (closed caption untouched %d, close %d)",
+          idle, closed);
+}
+
 static void BulletAndEnemyTests() {
     static uint8_t* obj = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     float* out = (float*)(obj + kXmmOut);
@@ -915,4 +948,5 @@ void RunSubsystemTests(uint8_t* img, int* failures) {
     CameraFinalTests(img);
     EnemyFinalTests();
     PushBlockTests();
+    CaptionTests(img);
 }

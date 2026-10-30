@@ -311,5 +311,6 @@ void InstallSubsystemPatches() {
     FixRemainingExact();
     FixEnemyFinal();
     FixPushBlocks();
+    FixCaptionLetterbox();
     if (g_cfg.fixCloth) FixCloth();
 }
