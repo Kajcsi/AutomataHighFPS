@@ -603,19 +603,30 @@ static void EnemyFinalTests() {
 
 static void PushBlockTests() {
     At60([] { CheckSameAt60("PB_BlockFallExact"); });
-    CHECK(FindPatch("PB_LogPushState") && FindPatch("PB_LogPushDelta") && FindPatch("PB_LogPushCheck"), "push log hooks installed");
     {
-        // The routed length call returns the original length.
+        // Moved flag: the block pre-update keeps a push's flag; the block update clears it once
+        // applied, with the flags its `je` reads unchanged (taken only when nothing moved).
         static uint8_t* m = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-        FillState(m, 3);
-        float* v = (float*)(m + kVecRcx);
-        v[0] = 0.003f, v[1] = 0.0f, v[2] = -0.004f, v[3] = 0.0f;
-        float* x = RunNamed("PB_LogPushDelta", m);
-        CHECK(x && Near(x[0], 0.005f), "push log length wrapper returns the length (%.6f)", x ? x[0] : 0.f);
+        const PatchRecord* keep = FindPatch("PB_BlockMovedKeep");
+        const PatchRecord* use = FindPatch("PB_BlockMovedConsume");
+        bool ok = keep && use;
+        if (ok) {
+            FillState(m, 4);
+            *(int*)(m + kVecRcx + 0x978) = 1;  // rcx = the block in the pre-update
+            RunSite(keep->site, keep->len, m, 0);
+            ok = *(int*)(m + kVecRcx + 0x978) == 1;
+            for (int moved = 0; moved < 2 && ok; ++moved) {
+                *(int*)(m + 0x978) = moved;
+                RunSite(use->site, use->len, m, 0);
+                ok = *(int*)(m + 0x978) == 0;
+            }
+        }
+        CHECK(ok, "push moved flag kept until the block update applies it, then cleared");
     }
     const float* step = ScaledConstant("PB_InteractCooldownStep");
     const float* pull = ScaledConstant("PB_BlockNavPullLerp");
-    CHECK(step && pull, "pushable block patches present");
+    const float* thr = ScaledConstant("PB_PushMoveThreshold");
+    CHECK(step && pull && thr, "pushable block patches present");
 
     // A block tipping off a ledge: 1 s at 144 fps drops as far as 60 frames at 60 fps.
     SimulateFrame(144);
@@ -632,13 +643,16 @@ static void PushBlockTests() {
         RunNamed("PB_BlockFallExact", o);
         vPlain -= e / 300.0f, plain += vPlain;
     }
-    float y60 = 10.0f, v60 = 0.0f;
-    for (int i = 0; i < 60; ++i) v60 -= 1.0f / 300.0f, y60 += v60;
+    // 60 Hz: v -= 1/300, y += v per tick, i.e. y(t) = y0 - t(t+1)/600 after t ticks; compared at
+    // the time actually simulated (144 frames of the measured e).
+    double t = 144.0 * e;
+    float y60 = (float)(10.0 - t * (t + 1.0) / 600.0);
     float y = *(float*)(o + 0x54);
     CHECK(fabsf(y - y60) < 1e-4f, "block fall after 1 s at 144 fps: %.5f (60 fps %.5f, without the fix %.5f)", y, y60, plain);
     CHECK(step && pull && Near(*step, e / 60.0f) && Near(*pull, 1 - powf(0.95f, e)),
           "interaction cooldowns count real time, block area pull exact at 144 fps (%.6f, %.6f)", step ? *step : 0.f,
           pull ? *pull : 0.f);
+    CHECK(thr && Near(*thr, 0.0001f * e), "push displacement threshold is the 60 fps speed at 144 fps (%.7f)", thr ? *thr : 0.f);
     SimulateFrame(144);
 }
 

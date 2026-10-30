@@ -3,9 +3,9 @@
 static const ScaledConstPatch kPbScaledConsts[] = {
     {"PB_InteractCooldownStep", "F3 0F 10 35 ?? ?? ?? ?? 33 F6 0F 2F C7 77 ?? 8B 05 ?? ?? ?? ??", nullptr, 0, {0xF3, 0x0F, 0x10, 0x35}, 4, 4, 8, Scale::Lin, 0.016666668f},
     {"PB_BlockNavPullLerp", "F3 0F 10 15 ?? ?? ?? ?? 48 8D 54 24 40 48 8D 4D 80 C7 44 24 44 00 00 00 00", nullptr, 0, {0xF3, 0x0F, 0x10, 0x15}, 4, 4, 8, Scale::Lerp, 0.05f},
+    {"PB_PushMoveThreshold", "F3 0F 10 3D ?? ?? ?? ?? 45 8B F4 0F 2F C7 41 0F 97 C6", nullptr, 0, {0xF3, 0x0F, 0x10, 0x3D}, 4, 4, 8, Scale::Lin, 0.0001f},
 };
 
 static const SigSite kPb_PB_BlockFallExact = {"PB_BlockFallExact", "F3 0F 5C C8 F3 0F 10 87 20 0B 00 00 F3 0F 5C F0 F3 0F 11 8F 24 0B 00 00 F3 0F 58 4F 54 F3 0F 11 4F 54", nullptr, 0, {0xF3, 0x0F, 0x5C, 0xC8, 0xF3, 0x0F, 0x10, 0x87, 0x20, 0x0B, 0x00, 0x00, 0xF3, 0x0F, 0x5C, 0xF0, 0xF3, 0x0F, 0x11, 0x8F, 0x24, 0x0B, 0x00, 0x00, 0xF3, 0x0F, 0x58, 0x4F, 0x54, 0xF3, 0x0F, 0x11, 0x4F, 0x54}, 34, 0x3FFFFFFFFull};
-static const SigSite kPb_PB_LogPushState = {"PB_LogPushState", "E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 8B 8F 74 06 00 00 F3 0F 10 3D ?? ?? ?? ?? 85 C9", nullptr, 0, {0xE8, 0xA1, 0xD9, 0xFB, 0xFF}, 5, 0x1Bull};
-static const SigSite kPb_PB_LogPushDelta = {"PB_LogPushDelta", "E8 ?? ?? ?? ?? F3 0F 10 3D ?? ?? ?? ?? 45 8B F4", nullptr, 0, {0xE8, 0xD3, 0x3C, 0xDA, 0xFF}, 5, 0x1Bull};
-static const SigSite kPb_PB_LogPushCheck = {"PB_LogPushCheck", "E8 ?? ?? ?? ?? 85 C0 45 8B F4 41 0F 94 C6 45 85 F6", nullptr, 0, {0xE8, 0x1D, 0x4C, 0xFB, 0xFF}, 5, 0x19ull};
+static const SigSite kPb_PB_BlockMovedKeep = {"PB_BlockMovedKeep", "C7 81 78 09 00 00 00 00 00 00 E8 ?? ?? ?? ?? 48 85 C0", nullptr, 0, {0xC7, 0x81, 0x78, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 10, 0x3FFull};
+static const SigSite kPb_PB_BlockMovedConsume = {"PB_BlockMovedConsume", "83 BF 78 09 00 00 00", nullptr, 0, {0x83, 0xBF, 0x78, 0x09, 0x00, 0x00, 0x00}, 7, 0x7Full};
