@@ -603,6 +603,16 @@ static void EnemyFinalTests() {
 
 static void PushBlockTests() {
     At60([] { CheckSameAt60("PB_BlockFallExact"); });
+    CHECK(FindPatch("PB_LogPushState") && FindPatch("PB_LogPushDelta") && FindPatch("PB_LogPushCheck"), "push log hooks installed");
+    {
+        // The routed length call returns the original length.
+        static uint8_t* m = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        FillState(m, 3);
+        float* v = (float*)(m + kVecRcx);
+        v[0] = 0.003f, v[1] = 0.0f, v[2] = -0.004f, v[3] = 0.0f;
+        float* x = RunNamed("PB_LogPushDelta", m);
+        CHECK(x && Near(x[0], 0.005f), "push log length wrapper returns the length (%.6f)", x ? x[0] : 0.f);
+    }
     const float* step = ScaledConstant("PB_InteractCooldownStep");
     const float* pull = ScaledConstant("PB_BlockNavPullLerp");
     CHECK(step && pull, "pushable block patches present");
