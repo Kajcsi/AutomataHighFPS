@@ -601,6 +601,37 @@ static void EnemyFinalTests() {
     SimulateFrame(144);
 }
 
+static void PushBlockTests() {
+    At60([] { CheckSameAt60("PB_BlockFallExact"); });
+    const float* step = ScaledConstant("PB_InteractCooldownStep");
+    const float* pull = ScaledConstant("PB_BlockNavPullLerp");
+    CHECK(step && pull, "pushable block patches present");
+
+    // A block tipping off a ledge: 1 s at 144 fps drops as far as 60 frames at 60 fps.
+    SimulateFrame(144);
+    float e = S->stepUpToOne;
+    static uint8_t* o = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    float* in = (float*)(o + kXmmIn);
+    FillState(o, 1);
+    *(float*)(o + 0xB24) = 0.0f;
+    *(float*)(o + 0x54) = 10.0f;
+    float plain = 10.0f, vPlain = 0.0f;
+    for (int i = 0; i < 144; ++i) {
+        in[0] = e / 300.0f;                    // g = GetDelta/300 at normal speed
+        in[1] = *(float*)(o + 0xB24);          // vy
+        RunNamed("PB_BlockFallExact", o);
+        vPlain -= e / 300.0f, plain += vPlain;
+    }
+    float y60 = 10.0f, v60 = 0.0f;
+    for (int i = 0; i < 60; ++i) v60 -= 1.0f / 300.0f, y60 += v60;
+    float y = *(float*)(o + 0x54);
+    CHECK(fabsf(y - y60) < 1e-4f, "block fall after 1 s at 144 fps: %.5f (60 fps %.5f, without the fix %.5f)", y, y60, plain);
+    CHECK(step && pull && Near(*step, e / 60.0f) && Near(*pull, 1 - powf(0.95f, e)),
+          "interaction cooldowns count real time, block area pull exact at 144 fps (%.6f, %.6f)", step ? *step : 0.f,
+          pull ? *pull : 0.f);
+    SimulateFrame(144);
+}
+
 static void BulletAndEnemyTests() {
     static uint8_t* obj = (uint8_t*)VirtualAlloc(nullptr, kObjSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     float* out = (float*)(obj + kXmmOut);
@@ -859,4 +890,5 @@ void RunSubsystemTests(uint8_t* img, int* failures) {
     MiscFinalTests();
     CameraFinalTests(img);
     EnemyFinalTests();
+    PushBlockTests();
 }

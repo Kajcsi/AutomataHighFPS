@@ -15,6 +15,7 @@ void FixExactSmoothing();
 void FixAnimationInputs();
 void FixRemainingExact();
 void FixEnemyFinal();
+void FixPushBlocks();
 // Per-frame diagnostics log ([Debug] JumpLog=1).
 void DebugJumpFrame();
 void FixCamera();

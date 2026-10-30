@@ -310,5 +310,6 @@ void InstallSubsystemPatches() {
     FixAnimationInputs();
     FixRemainingExact();
     FixEnemyFinal();
+    FixPushBlocks();
     if (g_cfg.fixCloth) FixCloth();
 }
