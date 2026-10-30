@@ -687,6 +687,36 @@ static void CaptionTests(uint8_t* img) {
     flags = savedFlags;
     CHECK(idle && closed, "auto-ending caption closes its letterbox and control lock (closed caption untouched %d, close %d)",
           idle, closed);
+
+    // The stuck order through the game's own letterbox open/close (0x140910E80 / 0x1408A0560):
+    // event start, caption opens with a hold, caption closes during the event, event ends.
+    const PatchRecord* rel = FindPatch("CP_LetterboxCaptionRelease");
+    CHECK(rel != nullptr, "letterbox caption-hold release patch present");
+    if (!rel) return;
+    uint8_t* closeFn = rel->site - 0x21;
+    auto open = (void (*)(uint8_t*, int))(img + 0x910E80);
+    auto close = (void (*)(uint8_t*, int, int))closeFn;
+    static uint8_t widget[0x100];
+    memset(mgr + 0x2D60, 0, sizeof savedMgr);
+    *(uint64_t*)(mgr + 0x2D60) = (uint64_t)widget;  // letterbox already shown: opens only flag it
+    *(uint32_t*)(mgr + 0x2D74) = 1;   // an event holds the letterbox (as 0x140910A00 leaves it)
+    *(uint32_t*)(mgr + 0x2D80) = 1;
+    open(mgr, 1);                     // caption opens with a hold
+    close(mgr, 0, 0);                 // caption closes while the event runs
+    int heldAfterCaption = *(int*)(mgr + 0x2D7C);
+    close(mgr, 1, 1);                 // event ends, keeping the letterbox only for open captions
+    bool released = heldAfterCaption == 0 && *(uint32_t*)(mgr + 0x2D90) == 1 && *(uint32_t*)(mgr + 0x2D7C) == 0;
+    // A caption still open when the event ends keeps it (unchanged).
+    memset(mgr + 0x2D60, 0, sizeof savedMgr);
+    *(uint64_t*)(mgr + 0x2D60) = (uint64_t)widget;
+    *(uint32_t*)(mgr + 0x2D74) = 1;
+    open(mgr, 1);
+    close(mgr, 1, 1);
+    bool kept = *(uint32_t*)(mgr + 0x2D90) == 0 && *(uint32_t*)(mgr + 0x2D7C) == 1;
+    memcpy(mgr + 0x2D60, savedMgr, sizeof savedMgr);
+    flags = savedFlags;
+    CHECK(released && kept, "caption closed during an event releases its letterbox hold (released %d, open caption kept %d)",
+          released, kept);
 }
 
 static void BulletAndEnemyTests() {
